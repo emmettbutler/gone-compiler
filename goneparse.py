@@ -85,12 +85,12 @@ from errors import error
 from gonelex import tokens
 
 # ----------------------------------------------------------------------
-# Get the AST nodes.  
+# Get the AST nodes.
 # Read instructions in goneast.py
-from gonerast import *
+from goneast import *
 
 # ----------------------------------------------------------------------
-# Operator precedence table.   Operators must follow the same 
+# Operator precedence table.   Operators must follow the same
 # precedence rules as in Python.  Instructions to be given in the project.
 # See http://www.dabeaz.com/ply/ply.html#ply_nn27
 
@@ -118,7 +118,7 @@ precedence = (
 # to p[0] as shown above.
 #
 # For the purposes of lineno number tracking, you should assign a line number
-# to each AST node as appropriate.  To do this, I suggest pulling the 
+# to each AST node as appropriate.  To do this, I suggest pulling the
 # line number off of any nearby terminal symbol.  For example:
 #
 # def p_print_statement(p):
