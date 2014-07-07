@@ -18,7 +18,7 @@ compiler supports multiple source files, add the filename keyword argument.
        error(lineno,"Some kind of error message",filename="foo.src")
 
 Error handling is based on a subscription based model using context-managers
-and the subscribe_errors() function. For example, to route error messages to 
+and the subscribe_errors() function. For example, to route error messages to
 standard output, use this:
 
        with subscribe_errors(print):
@@ -52,11 +52,11 @@ this to decide whether or not to keep processing or not.
 Use clear_errors() to clear the total number of errors.
 '''
 
-import sys
 from contextlib import contextmanager
 
 _subscribers = []
 _num_errors = 0
+
 
 def error(lineno, message, filename=None):
     '''
@@ -66,10 +66,11 @@ def error(lineno, message, filename=None):
     if not filename:
         errmsg = "{}: {}".format(lineno, message)
     else:
-        errmsg = "{}:{}: {}".format(filename,lineno,message)
+        errmsg = "{}:{}: {}".format(filename, lineno, message)
     for subscriber in _subscribers:
         subscriber(errmsg)
     _num_errors += 1
+
 
 def errors_reported():
     '''
@@ -77,12 +78,14 @@ def errors_reported():
     '''
     return _num_errors
 
+
 def clear_errors():
     '''
     Clear the total number of errors reported.
     '''
     global _num_errors
     _num_errors = 0
+
 
 @contextmanager
 def subscribe_errors(handler):
@@ -99,6 +102,3 @@ def subscribe_errors(handler):
         yield
     finally:
         _subscribers.remove(handler)
-    
-    
-
