@@ -41,6 +41,105 @@ class AST(object):
 
 # A few sample nodes
 
+class Program(AST):
+    '''
+    statements | empty
+    '''
+    _fields = ['statements']
+
+class Statements(AST):
+    '''
+    statements | statement
+    '''
+    _fields = ['statements']
+
+class Location(AST):
+    '''
+    ID
+    '''
+    _fields = ['name']
+
+class UnaryOp(AST):
+    '''
+    PLUS expression | MINUS expression
+    '''
+    _fields = ['operator', 'expr']
+
+class BinOp(AST):
+    '''
+    expression PLUS expression
+    | expression MINUS expression
+    | expression TIMES expression
+    | expression DIVIDE expression
+    '''
+    _fields = ['left', 'operator', 'right']
+
+class ExpressionGrouping(AST):
+    '''
+    LPAREN expression RPAREN
+    '''
+    _fields = ['expr']
+
+class ConstDeclaration(AST):
+    '''
+    CONST ID ASSIGN expression SEMI
+    '''
+    _fields = ['name', 'expr']
+
+class VarDeclaration(AST):
+    '''
+    VAR ID typename SEMI
+    '''
+    _fields = ['name', 'typename']
+
+class VarDeclarationAssignment(AST):
+    '''
+    VAR ID typename ASSIGN expression SEMI
+    '''
+    _fields = ['name', 'typename', 'expr']
+
+class AssignmentStatement(AST):
+    '''
+    location ASSIGN expression SEMI
+    '''
+    _fields = ['name', 'expr']
+
+class ExpressionList(AST):
+    '''
+    exprlist COMMA expression
+    '''
+    _fields = ['expressions']
+
+class NamedExpressionList(AST):
+    '''
+    ID LPAREN exprlist RPAREN
+    '''
+    _fields = ['name', 'exprlist']
+
+class ExternDeclaration(AST):
+    '''
+    EXTERN func_prototype SEMI
+    '''
+    _fields = ['prototype']
+
+class FunctionPrototype(AST):
+    '''
+    FUNC ID LPAREN parameters RPAREN typename
+    '''
+    _fields = ['name', 'params', 'typename']
+
+class Parameters(AST):
+    '''
+    parameters COMMA parm_declaration
+    '''
+    _fields = ['parameters']
+
+class ParameterDeclaration(AST):
+    '''
+    ID typename
+    '''
+    _fields = ['name', 'typename']
+
 class PrintStatement(AST):
     '''
     print expression ;
