@@ -44,7 +44,7 @@ expression :  + expression
            | expression * expression
            | expression / expression
            | ( expression )
-           | ID ( exprlist ) 
+           | ID ( exprlist )
            | location
            | literal
 
@@ -52,9 +52,9 @@ exprlist : | exprlist , expression
            | expression
            | empty
 
-literal : INTEGER     
-        | FLOAT       
-        | STRING      
+literal : INTEGER
+        | FLOAT
+        | STRING
 
 location : ID
 
