@@ -194,7 +194,8 @@ def t_STRING(t):
     t.value = t.value[1:-1]
 
     # If you are going to replace the string escape codes, do it here
-    # ---
+    t.value = t.value.replace("\\\\", "\\")
+    t.value = t.value.replace("\\n", "\n")
 
     return t
 
