@@ -30,7 +30,6 @@ Reserved Keywords:
     CONST   : 'const'
     VAR     : 'var'
     PRINT   : 'print'
-    LEN     : 'len'
     FUNC    : 'func'
     EXTERN  : 'extern'
 
@@ -110,7 +109,7 @@ from ply.lex import lex
 
 tokens = [
     # keywords
-    'ID', 'CONST', 'VAR', 'LEN', 'PRINT', 'FUNC', 'EXTERN',
+    'ID', 'CONST', 'VAR', 'PRINT', 'FUNC', 'EXTERN',
 
     # Operators and delimiters
     'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
@@ -134,15 +133,15 @@ t_ignore = ' \t\r'
 #
 # Tokens for simple symbols: + - * / = ( ) ;
 
-t_PLUS      = r'regex for a single plus sign'
-t_MINUS     = r'regex for a single minus sign'
-t_TIMES     = r'regex for a single star'
-t_DIVIDE    = r'regex for a single forward slash'
-t_ASSIGN    = r'regex for a single equals sign'
-t_SEMI      = r'regex for a semicolon'
-t_LPAREN    = r'regex for a left paren ('
-t_RPAREN    = r'regex for a right paren )'
-t_COMMA     = r'regex for a comma'
+t_PLUS      = r'\+'
+t_MINUS     = r'-'
+t_TIMES     = r'\*'
+t_DIVIDE    = r'/'
+t_ASSIGN    = r'='
+t_SEMI      = r';'
+t_LPAREN    = r'\('
+t_RPAREN    = r'\)'
+t_COMMA     = r','
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -156,7 +155,7 @@ t_COMMA     = r'regex for a comma'
 #
 # The value should be converted to a Python float when lexed
 def t_FLOAT(t):
-    r'regex for a floating point number'
+    r'(([0-9]*\.[0-9]*([eE][+-]?1)?)|([0-9]*[eE][+-]?1))'
     t.value = float(t.value)               # Conversion to Python float
     return t
 
@@ -166,7 +165,7 @@ def t_FLOAT(t):
 
 # The value should be converted to a Python int when lexed.
 def t_INTEGER(t):
-    r'regex for an integer'
+    r'[0-9]+'
     # Conversion to a Python int
     t.value = int(t.value)
     return t
@@ -190,7 +189,7 @@ def t_INTEGER(t):
 # if you are bored and have extra time.
 
 def t_STRING(t):
-    r'regex for a string literal'
+    r'(").*?(")'
     # Strip off the leading/trailing quotes
     t.value = t.value[1:-1]
 
@@ -208,15 +207,21 @@ def t_STRING(t):
 # That is, they start with a letter or underscore (_) and can contain
 # an arbitrary number of letters, digits, or underscores after that.
 def t_ID(t):
-    r'regex for an identifier'
+    r'[A-Za-z_][A-Za-z0-9_]*'
+
+    reserved = {
+        'const': 'CONST',
+        'var': 'VAR',
+        'print': 'PRINT',
+        'func': 'FUNC',
+        'extern': 'EXTERN'
+    }
 
     # *** YOU MUST IMPLEMENT ***
     # Add code to match keywords such as 'var','const','print','func','extern'
     # Change the token type as needed.  For example:
-    #
-    # if t.value =='var':
-    #      t.type = 'VAR'
-    #
+    if t.value in reserved:
+        t.type = reserved.get(t.value)
 
     return t
 
@@ -228,19 +233,19 @@ def t_ID(t):
 
 # One or more blank lines
 def t_newline(t):
-    r'regex for one or more newlines'
+    r'\n+'
     t.lexer.lineno += len(t.value)
 
 # C-style comment (/* ... */)
 def t_COMMENT(t):
-    r'regex for a C style comment'
+    r'(/\*)(.|\n)*?(\*/)'
 
     # Must count the number of newlines included to keep line count accurate
     t.lexer.lineno += t.value.count('\n')
 
 # C++-style comment (//...)
 def t_CPPCOMMENT(t):
-    r'regex for a C plusplus comment'
+    r'//.*?$'
     t.lexer.lineno += 1
 
 # ----------------------------------------------------------------------
@@ -256,12 +261,12 @@ def t_error(t):
 
 # Unterminated C-style comment
 def t_COMMENT_UNTERM(t):
-    r'regex for an unterminated comment'
+    r'(/\*)(.|\n)*'
     error(t.lexer.lineno,"Unterminated comment")
 
 # Unterminated string literal
 def t_STRING_UNTERM(t):
-    r'regex for an unterminated string literal'
+    r'".*'
     error(t.lexer.lineno,"Unterminated string literal")
     t.lexer.lineno += 1
 
