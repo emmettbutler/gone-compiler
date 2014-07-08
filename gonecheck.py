@@ -149,10 +149,14 @@ class CheckProgramVisitor(NodeVisitor):
     def visit_PrintStatement(self, node):
         self.visit(node.expr)
 
-    def visit_Unaryop(self, node):
+    def visit_UnaryOp(self, node):
         # 1. Make sure that the operation is supported by the type
         # 2. Set the result type to the same as the operand
-        pass
+        self.visit(node.expr)
+        if node.operator not in node.expr.type_obj.un_ops:
+            self.error(node.lineno, "{} does not support unary {}"
+                .format(node.expr.type_obj.name, node.operator))
+        node.type_obj = node.expr.type_obj
 
     def visit_BinOp(self, node):
         # 1. Make sure left and right operands have the same type
@@ -160,19 +164,27 @@ class CheckProgramVisitor(NodeVisitor):
         # 3. Assign the result type
         self.visit(node.left)
         self.visit(node.right)
-        if node.right.type_obj.name != node.left.type_obj.name:
+        if node.right.type_obj != node.left.type_obj:
             self.error(node.lineno, "cannot apply '{}' to '{}' and '{}'"
                 .format(node.operator, node.left.type_obj.name, node.right.type_obj.name))
         # TODO - should this only happen if the above condition is false
         node.type_obj = node.right.type_obj
+        if node.operator not in node.type_obj.bin_ops:
+            self.error(node.lineno, "{} does not support operator '{}'"
+                .format(node.type_obj.name, node.operator))
 
     def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined
         # 2. Check that assignment is allowed
         # 3. Check that the types match
+        self.visit(node.expr)
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
-            self.error(node.lineno, "assigning to undeclared identifier '{}'".format(node.name))
+            self.error(node.lineno, "assigning to undeclared identifier '{}'"
+                .format(node.name))
+        # TODO - if const, fail, if var pass
+        elif symbol.type_obj != node.expr.type_obj:
+            self.error(node.lineno, "cannot assign {} to {}".format(node.expr.type_obj.name, symbol.type_obj.name))
 
     def visit_ExpressionGrouping(self, node):
         self.visit(node.expr)
@@ -199,7 +211,7 @@ class CheckProgramVisitor(NodeVisitor):
             if type_obj is not None:
                 node.type_obj = type_obj
             else:
-                self.error("unknown type name '{}'".format(node.typename))
+                self.error(node.lineno, "unknown type name '{}'".format(node.typename))
                 node.type_obj = gonetype.error_type
             self.symbol_table.add(node.name, node)
 
@@ -213,25 +225,19 @@ class CheckProgramVisitor(NodeVisitor):
         # 3. Check that the type of the expression (if any) is the same
         self.visit(node.expr)
         self._visit_VarDeclaration_helper(node)
-
-    def visit_Typename(self, node):
-        # 1. Make sure the typename is valid and that it's actually a type
-        pass
+        if node.expr.type_obj != node.type_obj:
+            self.error(node.lineno, "cannot assign {} to {}"
+                .format(node.expr.type_obj.name, node.type_obj.name))
 
     def visit_Location(self, node):
         # 1. Make sure the location is a valid variable or constant value
         # 2. Assign the type of the location to the node
         symbol = self.symbol_table.get(node.name)
-        if symbol is None:
+        if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undeclared identifier '{}'".format(node.name))
             node.type_obj = gonetype.error_type
         else:
             node.type_obj = symbol.type_obj
-
-    def visit_LoadLocation(self, node):
-        # 1. Make sure the loaded location is valid.
-        # 2. Assign the appropriate type
-        pass
 
     def visit_Literal(self, node):
         # Attach an appropriate type to the literal
@@ -240,6 +246,31 @@ class CheckProgramVisitor(NodeVisitor):
             node.type_obj = type_obj
         else:
             self.error("unsupported literal '{}'".format(node.value))
+            node.type_obj = gonetype.error_type
+
+    def visit_NamedExpressionList(self, node):
+        symbol = self.symbol_table.get(node.name)
+        if symbol is None or isinstance(symbol, gonetype.GoneType):
+            self.error(node.lineno, "undefined function '{}'".format(node.name))
+            node.type_obj = gonetype.error_type
+        else:
+            node.type_obj = symbol.type_obj
+
+    def visit_ExternDeclaration(self, node):
+        self.visit(node.prototype)
+        self._visit_VarDeclaration_helper(node.prototype)
+
+    def visit_Parameters(self, node):
+        for declaration in node.parameters:
+            self.visit(declaration)
+
+    def visit_ParameterDeclaration(self, node):
+        type_obj = self.symbol_table.type_objects.get(node.typename, None)
+        if type_obj is not None:
+            node.type_obj = type_obj
+        else:
+            self.error(node.lineno, "unknown type name '{}'".format(node.typename))
+            node.type_obj = gonetype.error_type
 
 # ----------------------------------------------------------------------
 #                       DO NOT MODIFY ANYTHING BELOW

@@ -5,6 +5,7 @@
     const twopi = 2*pi;
     var x int;
     var y int = 23*45;
+    var q int = 23.0*45.0;
     var w int;
     x = 42 + y;
     w = -x;
@@ -14,10 +15,15 @@
     x = 37;
     print (x/2)*pi;
 
+    var j notatype;
+
     const a = "Hello";
     var b string;
     b = a + "World";
     print b;
+    b = -a;
+
+    b = "hi"*"there";
 
     print x+z;
 
