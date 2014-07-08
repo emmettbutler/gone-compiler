@@ -241,7 +241,7 @@ class CheckProgramVisitor(NodeVisitor):
         if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undeclared identifier '{}'".format(node.name))
             node.type_obj = gonetype.error_type
-        elif not isinstance(symbol, VarDeclaration) and not isinstance(symbol, ConstDeclaration):
+        elif not isinstance(symbol, VarDeclaration) and not isinstance(symbol, ConstDeclaration) and not isinstance(symbol, VarDeclarationAssignment):
             self.error(node.lineno, "identifier '{}' is not data".format(node.name))
             node.type_obj = gonetype.error_type
         else:
