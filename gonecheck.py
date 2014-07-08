@@ -259,6 +259,9 @@ class CheckProgramVisitor(NodeVisitor):
         if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undefined function '{}'".format(node.name))
             node.type_obj = gonetype.error_type
+        elif not isinstance(symbol, FunctionPrototype):
+            self.error(node.lineno, "{} is not a function".format(node.name))
+            node.type_obj = gonetype.error_type
         else:
             node.type_obj = symbol.type_obj
             if hasattr(symbol, 'argtypes'):
