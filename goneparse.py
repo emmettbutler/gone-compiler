@@ -143,7 +143,7 @@ def p_program(p):
     program : statements
             | empty
     '''
-    p[0] = Program(p[1])
+    p[0] = Program(p[1], lineno=p.lineno(1))
 
 
 def p_empty(p):
@@ -164,7 +164,7 @@ def p_statements_first(p):
     '''
     statements :  statement
     '''
-    p[0] = Statements([p[1]])
+    p[0] = Statements([p[1]], lineno=p.lineno(1))
 
 
 def p_statement(p):
@@ -182,35 +182,35 @@ def p_var_declaration(p):
     '''
     var_declaration : VAR ID typename SEMI
     '''
-    p[0] = VarDeclaration(p[2], p[3])
+    p[0] = VarDeclaration(p[2], p[3], lineno=p.lineno(2))
 
 
 def p_var_declaration_assignment(p):
     '''
     var_declaration : VAR ID typename ASSIGN expression SEMI
     '''
-    p[0] = VarDeclarationAssignment(p[2], p[3], p[5])
+    p[0] = VarDeclarationAssignment(p[2], p[3], p[5], lineno=p.lineno(5))
 
 
 def p_const_declaration(p):
     '''
     const_declaration : CONST ID ASSIGN expression SEMI
     '''
-    p[0] = ConstDeclaration(p[2], p[4])
+    p[0] = ConstDeclaration(p[2], p[4], lineno=p.lineno(4))
 
 
 def p_extern_declaration(p):
     '''
     extern_declaration : EXTERN func_prototype SEMI
     '''
-    p[0] = ExternDeclaration(p[2])
+    p[0] = ExternDeclaration(p[2], lineno=p.lineno(2))
 
 
 def p_func_prototype(p):
     '''
     func_prototype : FUNC ID LPAREN parameters RPAREN typename
     '''
-    p[0] = FunctionPrototype(p[2], p[4], p[6])
+    p[0] = FunctionPrototype(p[2], p[4], p[6], lineno=p.lineno(2))
 
 
 def p_parameters(p):
@@ -225,35 +225,35 @@ def p_parameters_first(p):
     '''
     parameters : parm_declaration
     '''
-    p[0] = Parameters([p[1]])
+    p[0] = Parameters([p[1]], lineno=p.lineno(1))
 
 
 def p_parameters_empty(p):
     '''
     parameters : empty
     '''
-    p[0] = Parameters([p[1]])
+    p[0] = Parameters([p[1]], lineno=p.lineno(1))
 
 
 def p_parameter_declaration(p):
     '''
     parm_declaration : ID typename
     '''
-    p[0] = ParameterDeclaration(p[1], p[2])
+    p[0] = ParameterDeclaration(p[1], p[2], lineno=p.lineno(1))
 
 
 def p_assign_statement(p):
     '''
     assign_statement : location ASSIGN expression SEMI
     '''
-    p[0] = AssignmentStatement(p[1], p[3])
+    p[0] = AssignmentStatement(p[1], p[3], lineno=p.lineno(1))
 
 
 def p_print_statemnt(p):
     '''
     print_statement : PRINT expression SEMI
     '''
-    p[0] = PrintStatement(p[2])
+    p[0] = PrintStatement(p[2], lineno=p.lineno(2))
 
 
 def p_expression_literal(p):
@@ -267,7 +267,7 @@ def p_expression_location(p):
     '''
     expression : location
     '''
-    p[0] = Location(p[1])
+    p[0] = Location(p[1], lineno=p.lineno(1))
 
 
 def p_location(p):
@@ -291,7 +291,7 @@ def p_expression_binop(p):
                | expression TIMES expression
                | expression DIVIDE expression
     '''
-    p[0] = BinOp(p[1], p[2], p[3])
+    p[0] = BinOp(p[1], p[2], p[3], lineno=p.lineno(2))
 
 
 def p_expression_unary(p):
@@ -299,14 +299,14 @@ def p_expression_unary(p):
     expression : PLUS expression %prec UNARY
                | MINUS expression %prec UNARY
     '''
-    p[0] = UnaryOp(p[1], p[2])
+    p[0] = UnaryOp(p[1], p[2], lineno=p.lineno(2))
 
 
 def p_expression_parenlist(p):
     '''
     expression : ID LPAREN exprlist RPAREN
     '''
-    p[0] = NamedExpressionList(p[1], p[3])
+    p[0] = NamedExpressionList(p[1], p[3], lineno=p.lineno(4))
 
 
 def p_exprlist(p):
@@ -321,21 +321,21 @@ def p_exprlist_first(p):
     '''
     exprlist : expression
     '''
-    p[0] = ExpressionList([p[1]])
+    p[0] = ExpressionList([p[1]], lineno=p.lineno(1))
 
 
 def p_exprlist_empty(p):
     '''
     exprlist : empty
     '''
-    p[0] = ExpressionList([p[1]])
+    p[0] = ExpressionList([p[1]], lineno=p.lineno(1))
 
 
 def p_expression_grouping(p):
     '''
     expression : LPAREN expression RPAREN
     '''
-    p[0] = ExpressionGrouping(p[2])
+    p[0] = ExpressionGrouping(p[2], lineno=p.lineno(3))
 
 
 def p_literal(p):
