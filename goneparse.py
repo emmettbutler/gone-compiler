@@ -96,7 +96,8 @@ from goneast import *
 
 precedence = (
     ('left', 'PLUS', 'MINUS'),
-    ('left', 'TIMES', 'DIVIDE')
+    ('left', 'TIMES', 'DIVIDE'),
+    ('right', 'UNARY')
 )
 
 # ----------------------------------------------------------------------
@@ -273,8 +274,8 @@ def p_expression_binop(p):
 
 def p_expression_unary(p):
     '''
-    expression : PLUS expression
-               | MINUS expression
+    expression : PLUS expression %prec UNARY
+               | MINUS expression %prec UNARY
     '''
     p[0] = UnaryOp(p[1], p[2])
 

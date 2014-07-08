@@ -13,6 +13,8 @@ print 1 / 2;
 /* Unary operators */
 print -1;
 print +1;
+print -(4*5);
+print -4*5;
 
 /* Expression grouping */
 print 2*(3+4);
