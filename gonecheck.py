@@ -31,7 +31,7 @@ need to check:
 
 2.  Types of literals
 
-    All literal symbols must be assigned a type of "int", "float", or "string".  
+    All literal symbols must be assigned a type of "int", "float", or "string".
     For example:
 
        const a = 42;         // Type "int"
@@ -65,7 +65,7 @@ need to check:
     float:    binary { +, -, *, /}, unary { +, -}
     string:   binary { + }, unary { }
 
-    Attempts to use unsupported operators should result in an error. 
+    Attempts to use unsupported operators should result in an error.
     For example:
 
         var string a = "Hello" + "World";     // OK
@@ -87,12 +87,14 @@ from errors import error
 from goneast import *
 import gonetype
 
+
 class SymbolTable(object):
     '''
     Class representing a symbol table.  It should provide functionality
     for adding and looking up nodes associated with identifiers.
     '''
     pass
+
 
 class CheckProgramVisitor(NodeVisitor):
     '''
@@ -110,61 +112,62 @@ class CheckProgramVisitor(NodeVisitor):
         # Add built-in type names (int, float, string) to the symbol table
         pass
 
-    def visit_Program(self,node):
+    def visit_Program(self, node):
         # 1. Visit all of the statements
         # 2. Record the associated symbol table
         pass
 
-    def visit_Unaryop(self,node):
+    def visit_Unaryop(self, node):
         # 1. Make sure that the operation is supported by the type
         # 2. Set the result type to the same as the operand
         pass
 
-    def visit_Binop(self,node):
+    def visit_Binop(self, node):
         # 1. Make sure left and right operands have the same type
         # 2. Make sure the operation is supported
         # 3. Assign the result type
         pass
 
-    def visit_AssignmentStatement(self,node):
+    def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined
         # 2. Check that assignment is allowed
         # 3. Check that the types match
         pass
 
-    def visit_ConstDeclaration(self,node):
+    def visit_ConstDeclaration(self, node):
         # 1. Check that the constant name is not already defined
         # 2. Add an entry to the symbol table
         pass
 
-    def visit_VarDeclaration(self,node):
+    def visit_VarDeclaration(self, node):
         # 1. Check that the variable name is not already defined
         # 2. Add an entry to the symbol table
         # 3. Check that the type of the expression (if any) is the same
         # 4. If there is no expression, set an initial value for the value
         pass
 
-    def visit_Typename(self,node):
+    def visit_Typename(self, node):
         # 1. Make sure the typename is valid and that it's actually a type
         pass
 
-    def visit_Location(self,node):
+    def visit_Location(self, node):
         # 1. Make sure the location is a valid variable or constant value
         # 2. Assign the type of the location to the node
         pass
 
-    def visit_LoadLocation(self,node):
+    def visit_LoadLocation(self, node):
         # 1. Make sure the loaded location is valid.
         # 2. Assign the appropriate type
         pass
 
-    def visit_Literal(self,node):
+    def visit_Literal(self, node):
         # Attach an appropriate type to the literal
         pass
-        
+
 # ----------------------------------------------------------------------
-#                       DO NOT MODIFY ANYTHING BELOW       
+#                       DO NOT MODIFY ANYTHING BELOW
 # ----------------------------------------------------------------------
+
 
 def check_program(node):
     '''
@@ -173,6 +176,7 @@ def check_program(node):
     checker = CheckProgramVisitor()
     checker.visit(node)
 
+
 def main():
     import gonelex
     import goneparse
@@ -180,14 +184,11 @@ def main():
     from errors import subscribe_errors
     lexer = gonelex.make_lexer()
     parser = goneparse.make_parser()
-    with subscribe_errors(lambda msg: sys.stdout.write(msg+"\n")):
+    with subscribe_errors(lambda msg: sys.stdout.write(msg + "\n")):
         program = parser.parse(open(sys.argv[1]).read())
         # Check the program
         check_program(program)
 
+
 if __name__ == '__main__':
     main()
-            
-
-
-

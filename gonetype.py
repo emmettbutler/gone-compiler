@@ -2,7 +2,7 @@
 '''
 Gone Type System
 ================
-This file implements the Gone type system.  There is a lot of 
+This file implements the Gone type system.  There is a lot of
 flexibility with the implementation, but start by defining a
 class representing a type.
 
@@ -30,35 +30,10 @@ with symbol tables and other code that checks for type names. This
 might require some coding in 'gonecheck.py'.
 '''
 
-Gone Type System
-================
-This file defines classes representing types.  There is a general
-class used to represent all types.  Each type is then a singleton
-instance of the type class.
-
-class GoneType(object):
-      pass
-
-int_type = GoneType("int",...)
-float_type = GoneType("float",...)
-string_type = GoneType("string", ...)
-
-The contents of the type class is entirely up to you.  However, you
-will minimally need to encode some information about:
-
-   a.  What operators are supported (+, -, *, etc.).
-   b.  Default values
-   c.  ????
-   d.  Profit!
-
-Once you have defined the built-in types, you will need to
-make sure they get registered with any symbol tables or
-code that checks for type names in 'gonecheck.py'.
-'''
 
 class GoneType(object):
     '''
-    Class that represents a type in the Gone language.  Types 
+    Class that represents a type in the Gone language.  Types
     are declared as singleton instances of this type.
     '''
     def __init__(self):
@@ -77,9 +52,3 @@ string_type = GoneType()
 # In your type checking code, you will need to reference the
 # above type objects.   Think of how you will want to access
 # them.
-
-          
-
-
-
-
