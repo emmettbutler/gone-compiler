@@ -246,7 +246,7 @@ def p_assign_statement(p):
     '''
     assign_statement : location ASSIGN expression SEMI
     '''
-    p[0] = AssignmentStatement(p[1], p[3], lineno=p.lineno(2))
+    p[0] = AssignmentStatement(p[1].name, p[3], lineno=p.lineno(2))
 
 
 def p_print_statemnt(p):
