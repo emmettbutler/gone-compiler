@@ -67,11 +67,20 @@ class StringType(GoneType):
         self.default = ""
 
 
+class ErrorType(GoneType):
+    def __init__(self):
+        self.name = "<error>"
+        self.bin_ops = {}
+        self.un_ops = {}
+        self.default = None
+
+
 # Create specific instances of types. You will need to add
 # appropriate arguments depending on your definition of GoneType
 int_type = IntType()
 float_type = FloatType()
 string_type = StringType()
+error_type = ErrorType()
 
 # In your type checking code, you will need to reference the
 # above type objects.   Think of how you will want to access

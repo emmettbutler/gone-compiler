@@ -111,7 +111,7 @@ class SymbolTable(object):
         return self.table.get(symbol, None)
 
     def pprint(self):
-        print("-" * 10)
+        print("{}top".format("-" * 10))
         for symbol in self.table:
             print("{}: {}".format(symbol, self.table.get(symbol)))
         print("-" * 10)
@@ -144,7 +144,6 @@ class CheckProgramVisitor(NodeVisitor):
         # 1. Visit all of the statements
         # 2. Record the associated symbol table
         for statement in node.statements.statements:
-            print(statement)
             self.visit(statement)
 
     def visit_PrintStatement(self, node):
@@ -161,6 +160,11 @@ class CheckProgramVisitor(NodeVisitor):
         # 3. Assign the result type
         self.visit(node.left)
         self.visit(node.right)
+        if node.right.type_obj.name != node.left.type_obj.name:
+            self.error(node.lineno, "cannot apply '{}' to '{}' and '{}'"
+                .format(node.operator, node.left.type_obj.name, node.right.type_obj.name))
+        # TODO - should this only happen if the above condition is false
+        node.type_obj = node.right.type_obj
 
     def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined
@@ -170,6 +174,10 @@ class CheckProgramVisitor(NodeVisitor):
         if symbol is None:
             self.error(node.lineno, "assigning to undeclared identifier '{}'".format(node.name))
 
+    def visit_ExpressionGrouping(self, node):
+        self.visit(node.expr)
+        node.type_obj = node.expr.type_obj
+
     def visit_ConstDeclaration(self, node):
         # 1. Check that the constant name is not already defined
         # 2. Add an entry to the symbol table
@@ -177,27 +185,34 @@ class CheckProgramVisitor(NodeVisitor):
         symbol = self.symbol_table.get(node.name)
         if symbol is not None:
             self.error(node.lineno, "const '{}' is already defined".format(node.name))
+            node.type_obj = gonetype.error_type
         else:
+            node.type_obj = node.expr.type_obj
+            self.symbol_table.add(node.name, node)
+
+    def _visit_VarDeclaration_helper(self, node):
+        symbol = self.symbol_table.get(node.name)
+        if symbol is not None:
+            self.error(node.lineno, "var '{}' is already declared".format(node.name))
+        else:
+            type_obj = self.symbol_table.type_objects.get(node.typename, None)
+            if type_obj is not None:
+                node.type_obj = type_obj
+            else:
+                self.error("unknown type name '{}'".format(node.typename))
+                node.type_obj = gonetype.error_type
             self.symbol_table.add(node.name, node)
 
     def visit_VarDeclaration(self, node):
         # 1. Check that the variable name is not already defined
         # 2. Add an entry to the symbol table
         # 4. If there is no expression, set an initial value for the value
-        symbol = self.symbol_table.get(node.name)
-        if symbol is not None:
-            self.error(node.lineno, "var '{}' is already declared".format(node.name))
-        else:
-            type_obj = self.symbol_table.type_objects.get(type(node.typename), None)
-            if type_obj is not None:
-                node.type_obj = type_obj
-            else:
-                self.error("unknown type name '{}'".format(node.typename))
-            self.symbol_table.add(node.name, node)
+        self._visit_VarDeclaration_helper(node)
 
     def visit_VarDeclarationAssignment(self, node):
         # 3. Check that the type of the expression (if any) is the same
-        pass
+        self.visit(node.expr)
+        self._visit_VarDeclaration_helper(node)
 
     def visit_Typename(self, node):
         # 1. Make sure the typename is valid and that it's actually a type
@@ -209,6 +224,9 @@ class CheckProgramVisitor(NodeVisitor):
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
             self.error(node.lineno, "undeclared identifier '{}'".format(node.name))
+            node.type_obj = gonetype.error_type
+        else:
+            node.type_obj = symbol.type_obj
 
     def visit_LoadLocation(self, node):
         # 1. Make sure the loaded location is valid.
