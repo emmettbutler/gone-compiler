@@ -232,7 +232,7 @@ def p_parameters_empty(p):
     '''
     parameters : empty
     '''
-    p[0] = Parameters([p[1]], lineno=p.lineno(1))
+    p[0] = Parameters([], lineno=p.lineno(1))
 
 
 def p_parameter_declaration(p):
