@@ -93,7 +93,28 @@ class SymbolTable(object):
     Class representing a symbol table.  It should provide functionality
     for adding and looking up nodes associated with identifiers.
     '''
-    pass
+    def __init__(self):
+        self.table = {}
+        self.type_objects = {
+            int: gonetype.int_type,
+            float: gonetype.float_type,
+            str: gonetype.string_type,
+            'int': gonetype.int_type,
+            'float': gonetype.float_type,
+            'string': gonetype.string_type
+        }
+
+    def add(self, symbol, data):
+        self.table[symbol] = data
+
+    def get(self, symbol):
+        return self.table.get(symbol, None)
+
+    def pprint(self):
+        print("-" * 10)
+        for symbol in self.table:
+            print("{}: {}".format(symbol, self.table.get(symbol)))
+        print("-" * 10)
 
 
 class CheckProgramVisitor(NodeVisitor):
@@ -107,43 +128,75 @@ class CheckProgramVisitor(NodeVisitor):
     '''
     def __init__(self):
         # Initialize the symbol table
-        pass
+        self.symbol_table = SymbolTable()
 
         # Add built-in type names (int, float, string) to the symbol table
-        pass
+        self.symbol_table.add("int", gonetype.int_type)
+        self.symbol_table.add("float", gonetype.float_type)
+        self.symbol_table.add("string", gonetype.string_type)
+
+    def error(self, lineno, errstring):
+        errstring = "Error: {}: {}".format(lineno, errstring)
+        print(errstring)
+        # raise SyntaxError(errstring)
 
     def visit_Program(self, node):
         # 1. Visit all of the statements
         # 2. Record the associated symbol table
-        pass
+        for statement in node.statements.statements:
+            print(statement)
+            self.visit(statement)
+
+    def visit_PrintStatement(self, node):
+        self.visit(node.expr)
 
     def visit_Unaryop(self, node):
         # 1. Make sure that the operation is supported by the type
         # 2. Set the result type to the same as the operand
         pass
 
-    def visit_Binop(self, node):
+    def visit_BinOp(self, node):
         # 1. Make sure left and right operands have the same type
         # 2. Make sure the operation is supported
         # 3. Assign the result type
-        pass
+        self.visit(node.left)
+        self.visit(node.right)
 
     def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined
         # 2. Check that assignment is allowed
         # 3. Check that the types match
-        pass
+        symbol = self.symbol_table.get(node.name)
+        if symbol is None:
+            self.error(node.lineno, "assigning to undeclared identifier '{}'".format(node.name))
 
     def visit_ConstDeclaration(self, node):
         # 1. Check that the constant name is not already defined
         # 2. Add an entry to the symbol table
-        pass
+        self.visit(node.expr)
+        symbol = self.symbol_table.get(node.name)
+        if symbol is not None:
+            self.error(node.lineno, "const '{}' is already defined".format(node.name))
+        else:
+            self.symbol_table.add(node.name, node)
 
     def visit_VarDeclaration(self, node):
         # 1. Check that the variable name is not already defined
         # 2. Add an entry to the symbol table
-        # 3. Check that the type of the expression (if any) is the same
         # 4. If there is no expression, set an initial value for the value
+        symbol = self.symbol_table.get(node.name)
+        if symbol is not None:
+            self.error(node.lineno, "var '{}' is already declared".format(node.name))
+        else:
+            type_obj = self.symbol_table.type_objects.get(type(node.typename), None)
+            if type_obj is not None:
+                node.type_obj = type_obj
+            else:
+                self.error("unknown type name '{}'".format(node.typename))
+            self.symbol_table.add(node.name, node)
+
+    def visit_VarDeclarationAssignment(self, node):
+        # 3. Check that the type of the expression (if any) is the same
         pass
 
     def visit_Typename(self, node):
@@ -153,7 +206,9 @@ class CheckProgramVisitor(NodeVisitor):
     def visit_Location(self, node):
         # 1. Make sure the location is a valid variable or constant value
         # 2. Assign the type of the location to the node
-        pass
+        symbol = self.symbol_table.get(node.name)
+        if symbol is None:
+            self.error(node.lineno, "undeclared identifier '{}'".format(node.name))
 
     def visit_LoadLocation(self, node):
         # 1. Make sure the loaded location is valid.
@@ -162,7 +217,11 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_Literal(self, node):
         # Attach an appropriate type to the literal
-        pass
+        type_obj = self.symbol_table.type_objects.get(type(node.value), None)
+        if type_obj is not None:
+            node.type_obj = type_obj
+        else:
+            self.error("unsupported literal '{}'".format(node.value))
 
 # ----------------------------------------------------------------------
 #                       DO NOT MODIFY ANYTHING BELOW
