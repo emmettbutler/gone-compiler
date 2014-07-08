@@ -254,16 +254,41 @@ class CheckProgramVisitor(NodeVisitor):
             node.type_obj = gonetype.error_type
 
     def visit_NamedExpressionList(self, node):
+        self.visit(node.exprlist)
         symbol = self.symbol_table.get(node.name)
         if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undefined function '{}'".format(node.name))
             node.type_obj = gonetype.error_type
         else:
             node.type_obj = symbol.type_obj
+            if hasattr(symbol, 'argtypes'):
+                if len(symbol.argtypes) != len(node.exprlist.expressions):
+                    self.error(node.lineno, "function '{}' accepts {} arguments, {} given"
+                        .format(node.name, len(symbol.argtypes),
+                                len(node.exprlist.expressions)))
+                for idx, expression in enumerate(node.exprlist.expressions):
+                    expected_type = symbol.argtypes[idx]
+                    if expression is None:
+                        # lol
+                        pass
+                    elif expression.type_obj != expected_type:
+                        self.error(node.lineno, "argument {} to function '{}' is {}, {} expected"
+                            .format(idx, node.name, expression.type_obj.name,
+                                    expected_type.name))
+
+    def visit_ExpressionList(self, node):
+        for expression in node.expressions:
+            self.visit(expression)
 
     def visit_ExternDeclaration(self, node):
         self.visit(node.prototype)
         self._visit_VarDeclaration_helper(node.prototype)
+
+    def visit_FunctionPrototype(self, node):
+        self.visit(node.params)
+        node.argtypes = []
+        for parameter in node.params.parameters:
+            node.argtypes.append(parameter.type_obj)
 
     def visit_Parameters(self, node):
         for declaration in node.parameters:
