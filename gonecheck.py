@@ -167,11 +167,13 @@ class CheckProgramVisitor(NodeVisitor):
         if node.right.type_obj != node.left.type_obj:
             self.error(node.lineno, "cannot apply '{}' to '{}' and '{}'"
                 .format(node.operator, node.left.type_obj.name, node.right.type_obj.name))
-        # TODO - should this only happen if the above condition is false
-        node.type_obj = node.right.type_obj
+            node.type_obj = gonetype.error_type
+        else:
+            node.type_obj = node.right.type_obj
         if node.operator not in node.type_obj.bin_ops:
-            self.error(node.lineno, "{} does not support operator '{}'"
-                .format(node.type_obj.name, node.operator))
+            if node.type_obj != gonetype.error_type:
+                self.error(node.lineno, "{} does not support operator '{}'"
+                    .format(node.type_obj.name, node.operator))
 
     def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined
@@ -182,9 +184,10 @@ class CheckProgramVisitor(NodeVisitor):
         if symbol is None:
             self.error(node.lineno, "assigning to undeclared identifier '{}'"
                 .format(node.name))
-        # TODO - if const, fail, if var pass
         elif symbol.type_obj != node.expr.type_obj:
             self.error(node.lineno, "cannot assign {} to {}".format(node.expr.type_obj.name, symbol.type_obj.name))
+        if hasattr(symbol, 'ctx') and symbol.ctx == "const":
+            self.error(node.lineno, "cannot assign to const '{}'".format(symbol.name))
 
     def visit_ExpressionGrouping(self, node):
         self.visit(node.expr)
@@ -201,6 +204,7 @@ class CheckProgramVisitor(NodeVisitor):
         else:
             node.type_obj = node.expr.type_obj
             self.symbol_table.add(node.name, node)
+        node.ctx = "const"
 
     def _visit_VarDeclaration_helper(self, node):
         symbol = self.symbol_table.get(node.name)
@@ -214,6 +218,7 @@ class CheckProgramVisitor(NodeVisitor):
                 self.error(node.lineno, "unknown type name '{}'".format(node.typename))
                 node.type_obj = gonetype.error_type
             self.symbol_table.add(node.name, node)
+        node.ctx = "var"
 
     def visit_VarDeclaration(self, node):
         # 1. Check that the variable name is not already defined
