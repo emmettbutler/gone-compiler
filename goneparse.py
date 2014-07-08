@@ -189,7 +189,7 @@ def p_var_declaration_assignment(p):
     '''
     var_declaration : VAR ID typename ASSIGN expression SEMI
     '''
-    p[0] = VarDeclarationAssignment(p[2], p[3], p[5], lineno=p.lineno(5))
+    p[0] = VarDeclarationAssignment(p[2], p[3], p[5], lineno=p.lineno(1))
 
 
 def p_const_declaration(p):
@@ -246,7 +246,7 @@ def p_assign_statement(p):
     '''
     assign_statement : location ASSIGN expression SEMI
     '''
-    p[0] = AssignmentStatement(p[1], p[3], lineno=p.lineno(1))
+    p[0] = AssignmentStatement(p[1], p[3], lineno=p.lineno(2))
 
 
 def p_print_statemnt(p):
@@ -267,14 +267,14 @@ def p_expression_location(p):
     '''
     expression : location
     '''
-    p[0] = Location(p[1], lineno=p.lineno(1))
+    p[0] = p[1]
 
 
 def p_location(p):
     '''
     location : ID
     '''
-    p[0] = p[1]
+    p[0] = Location(p[1], lineno=p.lineno(1))
 
 
 def p_typename(p):
@@ -299,7 +299,7 @@ def p_expression_unary(p):
     expression : PLUS expression %prec UNARY
                | MINUS expression %prec UNARY
     '''
-    p[0] = UnaryOp(p[1], p[2], lineno=p.lineno(2))
+    p[0] = UnaryOp(p[1], p[2], lineno=p.lineno(1))
 
 
 def p_expression_parenlist(p):
