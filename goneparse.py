@@ -328,7 +328,7 @@ def p_exprlist_empty(p):
     '''
     exprlist : empty
     '''
-    p[0] = ExpressionList([p[1]], lineno=p.lineno(1))
+    p[0] = ExpressionList([], lineno=p.lineno(1))
 
 
 def p_expression_grouping(p):

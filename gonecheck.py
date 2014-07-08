@@ -268,10 +268,7 @@ class CheckProgramVisitor(NodeVisitor):
                                 len(node.exprlist.expressions)))
                 for idx, expression in enumerate(node.exprlist.expressions):
                     expected_type = symbol.argtypes[idx]
-                    if expression is None:
-                        # lol
-                        pass
-                    elif expression.type_obj != expected_type:
+                    if expression.type_obj != expected_type:
                         self.error(node.lineno, "argument {} to function '{}' is {}, {} expected"
                             .format(idx, node.name, expression.type_obj.name,
                                     expected_type.name))
