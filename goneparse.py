@@ -95,6 +95,8 @@ from goneast import *
 # See http://www.dabeaz.com/ply/ply.html#ply_nn27
 
 precedence = (
+    ('left', 'PLUS', 'MINUS'),
+    ('left', 'TIMES', 'DIVIDE')
 )
 
 # ----------------------------------------------------------------------
@@ -349,6 +351,7 @@ def main():
     # Output the resulting parse tree structure
     for depth,node in flatten(program):
         print("%s%s" % (" "*(4*depth),node))
+
 
 if __name__ == '__main__':
     main()
