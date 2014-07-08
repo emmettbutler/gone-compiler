@@ -219,25 +219,25 @@ class GenerateCode(goneast.NodeVisitor):
 
     def visit_Literal(self, node):
         # Create a new temporary variable name
-        target = self.new_temp(node.type)
+        target = self.new_temp(node.type_obj)
 
         # Make the SSA opcode and append to list of generated instructions
-        inst = ('literal_' + node.type.name, node.value, target)
+        inst = ('literal_' + node.type_obj.name, node.value, target)
         self.code.append(inst)
 
         # Save the name of the temporary variable where the value was placed
         node.gen_location = target
 
-    def visit_Binop(self, node):
+    def visit_BinOp(self, node):
         # Visit the left and right expressions
         self.visit(node.left)
         self.visit(node.right)
 
         # Make a new temporary for storing the result
-        target = self.new_temp(node.type)
+        target = self.new_temp(node.type_obj)
 
         # Create the opcode and append to list
-        opcode = binary_ops[node.op] + "_" + node.left.type.name
+        opcode = binary_ops[node.operator] + "_" + node.left.type_obj.name
         inst = (opcode, node.left.gen_location, node.right.gen_location, target)
         self.code.append(inst)
 
