@@ -202,6 +202,11 @@ class GenerateCode(goneast.NodeVisitor):
         # A list of external declarations (and types)
         self.externs = []
 
+    def pprint(self, code):
+        print("code:")
+        for a in code:
+            print(a)
+
     def new_temp(self, typeobj):
         '''
         Create a new temporary variable of a given type.
@@ -217,6 +222,11 @@ class GenerateCode(goneast.NodeVisitor):
     # A few sample methods follow.  You may have to adjust depending
     # on the names of the AST nodes you've defined.
 
+    def visit_Program(self, node):
+        for statement in node.statements.statements:
+            self.visit(statement)
+            self.pprint(self.code)
+
     def visit_Literal(self, node):
         # Create a new temporary variable name
         target = self.new_temp(node.type_obj)
@@ -226,6 +236,25 @@ class GenerateCode(goneast.NodeVisitor):
         self.code.append(inst)
 
         # Save the name of the temporary variable where the value was placed
+        node.gen_location = target
+
+    def visit_Location(self, node):
+        target = self.new_temp(node.type_obj)
+
+        inst = ('load_' + node.type_obj.name, node.name, target)
+        self.code.append(inst)
+
+        node.gen_location = target
+
+    def visit_UnaryOp(self, node):
+        self.visit(node.expr)
+
+        target = self.new_temp(node.type_obj)
+
+        opcode = unary_ops[node.operator] + "_" + node.expr.type_obj.name
+        inst = (opcode, node.expr.gen_location, target)
+        self.code.append(inst)
+
         node.gen_location = target
 
     def visit_BinOp(self, node):
@@ -249,7 +278,7 @@ class GenerateCode(goneast.NodeVisitor):
         self.visit(node.expr)
 
         # Create the opcode and append to list
-        inst = ('print_' + node.expr.type.name, node.expr.gen_location)
+        inst = ('print_' + node.expr.type_obj.name, node.expr.gen_location)
         self.code.append(inst)
 
 # STEP 3: Testing
