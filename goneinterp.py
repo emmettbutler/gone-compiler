@@ -64,96 +64,54 @@ class Interpreter(object):
         '''
         for op in ircode:
             opcode = op[0]
-            if hasattr(self, "run_" + opcode):
-                getattr(self, "run_" + opcode)(*op[1:])
-            else:
-                print("Warning: No run_" + opcode + "() method")
+            opname, typename = opcode.split("_")
+            matches = [a for a in self.__dir__() if a.startswith("gen_" + opname + "_")]
+            ran = False
+            for match in matches:
+                if typename in match.split("_")[2:]:
+                    getattr(self, match)(*op[1:])
+                    ran = True
+                    break
+            if not ran:
+                if hasattr(self, "run_" + opcode):
+                    getattr(self, "run_" + opcode)(*op[1:])
+                else:
+                    print("Warning: No run_" + opcode + "() method")
 
     # YOU MUST IMPLEMENT:  Methods for different opcodes.  A few sample
     # opcodes are shown below to get you started.
 
-    def run_alloc_int(self, name):
+    def gen_alloc_int_float_string(self, name):
         self.vars[name] = None
 
-    def run_alloc_float(self, name):
-        self.vars[name] = None
-
-    def run_alloc_string(self, name):
-        self.vars[name] = None
-
-    def run_store_int(self, target, name):
+    def gen_store_int_float_string(self, target, name):
         self.vars[name] = self.vars[target]
 
-    def run_store_float(self, target, name):
-        self.vars[name] = self.vars[target]
-
-    def run_store_string(self, target, name):
-        self.vars[name] = self.vars[target]
-
-    def run_load_int(self, name, target):
+    def gen_load_int_float_string(self, name, target):
         self.vars[target] = self.vars[name]
 
-    def run_load_float(self, name, target):
-        self.vars[target] = self.vars[name]
-
-    def run_load_string(self, name, target):
-        self.vars[target] = self.vars[name]
-
-    def run_sub_int(self, left, right, target):
+    def gen_sub_int_float(self, left, right, target):
         self.vars[target] = self.vars[left] - self.vars[right]
 
-    def run_sub_float(self, left, right, target):
-        self.vars[target] = self.vars[left] - self.vars[right]
-
-    def run_mul_int(self, left, right, target):
+    def gen_mul_int_float(self, left, right, target):
         self.vars[target] = self.vars[left] * self.vars[right]
 
-    def run_mul_float(self, left, right, target):
-        self.vars[target] = self.vars[left] * self.vars[right]
-
-    def run_div_int(self, left, right, target):
+    def gen_div_int_float(self, left, right, target):
         self.vars[target] = self.vars[left] / self.vars[right]
 
-    def run_div_float(self, left, right, target):
-        self.vars[target] = self.vars[left] / self.vars[right]
-
-    def run_add_int(self, left, right, target):
+    def gen_add_int_float_string(self, left, right, target):
         self.vars[target] = self.vars[left] + self.vars[right]
 
-    def run_add_float(self, left, right, target):
-        self.vars[target] = self.vars[left] + self.vars[right]
-
-    def run_add_string(self, left, right, target):
-        self.vars[target] = self.vars[left] + self.vars[right]
-
-    def run_uadd_int(self, source, target):
+    def gen_uadd_int_float(self, source, target):
         self.vars[target] = self.vars[source]
 
-    def run_uadd_float(self, source, target):
-        self.vars[target] = self.vars[source]
-
-    def run_usub_int(self, source, target):
+    def gen_usub_int_float(self, source, target):
         self.vars[target] = -1 * self.vars[source]
 
-    def run_usub_float(self, source, target):
-        self.vars[target] = -1 * self.vars[source]
-
-    def run_literal_int(self, value, target):
+    def gen_literal_int_float_string(self, value, target):
         self.vars[target] = value
 
-    def run_literal_float(self, value, target):
-        self.vars[target] = value
-
-    def run_literal_string(self, value, target):
-        self.vars[target] = value
-
-    def run_print_int(self, source):
-        print(self.vars[source])
-
-    def run_print_float(self, source):
-        print(self.vars[source])
-
-    def run_print_string(self, source):
+    def gen_print_int_float_string(self, source):
         print(self.vars[source])
 
     def run_extern_func(self, name, ret_type, *arg_types):
