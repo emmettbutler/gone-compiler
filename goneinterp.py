@@ -72,23 +72,101 @@ class Interpreter(object):
     # YOU MUST IMPLEMENT:  Methods for different opcodes.  A few sample
     # opcodes are shown below to get you started.
 
-    def run_literal_int(self, value, target):
-        '''
-        Create a literal integer value
-        '''
-        self.vars[target] = value
+    def run_alloc_int(self, name):
+        self.vars[name] = None
+
+    def run_alloc_float(self, name):
+        self.vars[name] = None
+
+    def run_alloc_string(self, name):
+        self.vars[name] = None
+
+    def run_store_int(self, target, name):
+        self.vars[name] = self.vars[target]
+
+    def run_store_float(self, target, name):
+        self.vars[name] = self.vars[target]
+
+    def run_store_string(self, target, name):
+        self.vars[name] = self.vars[target]
+
+    def run_load_int(self, name, target):
+        self.vars[target] = self.vars[name]
+
+    def run_load_float(self, name, target):
+        self.vars[target] = self.vars[name]
+
+    def run_load_string(self, name, target):
+        self.vars[target] = self.vars[name]
+
+    def run_sub_int(self, left, right, target):
+        self.vars[target] = self.vars[left] - self.vars[right]
+
+    def run_sub_float(self, left, right, target):
+        self.vars[target] = self.vars[left] - self.vars[right]
+
+    def run_mul_int(self, left, right, target):
+        self.vars[target] = self.vars[left] * self.vars[right]
+
+    def run_mul_float(self, left, right, target):
+        self.vars[target] = self.vars[left] * self.vars[right]
+
+    def run_div_int(self, left, right, target):
+        self.vars[target] = self.vars[left] / self.vars[right]
+
+    def run_div_float(self, left, right, target):
+        self.vars[target] = self.vars[left] / self.vars[right]
 
     def run_add_int(self, left, right, target):
-        '''
-        Add two integer varibles
-        '''
         self.vars[target] = self.vars[left] + self.vars[right]
 
+    def run_add_float(self, left, right, target):
+        self.vars[target] = self.vars[left] + self.vars[right]
+
+    def run_add_string(self, left, right, target):
+        self.vars[target] = self.vars[left] + self.vars[right]
+
+    def run_uadd_int(self, source, target):
+        self.vars[target] = self.vars[source]
+
+    def run_uadd_float(self, source, target):
+        self.vars[target] = self.vars[source]
+
+    def run_usub_int(self, source, target):
+        self.vars[target] = -1 * self.vars[source]
+
+    def run_usub_float(self, source, target):
+        self.vars[target] = -1 * self.vars[source]
+
+    def run_literal_int(self, value, target):
+        self.vars[target] = value
+
+    def run_literal_float(self, value, target):
+        self.vars[target] = value
+
+    def run_literal_string(self, value, target):
+        self.vars[target] = value
+
     def run_print_int(self, source):
-        '''
-        Output an integer value.
-        '''
         print(self.vars[source])
+
+    def run_print_float(self, source):
+        print(self.vars[source])
+
+    def run_print_string(self, source):
+        print(self.vars[source])
+
+    def run_extern_func(self, name, ret_type, *arg_types):
+        found = False
+        for lib in self.external_libs:
+            if name in lib.__dict__:
+                self.vars[name] = lib.__dict__[name]
+                found = True
+        if not found:
+            raise RuntimeError("Error: extern '{}' not found".format(name))
+
+    def run_call_func(self, name, target, *func_args):
+        self.vars[target] = self.vars[name](*[self.vars[a] for a in func_args])
 
     # You must implement the rest of the operations below
 

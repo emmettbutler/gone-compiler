@@ -268,9 +268,9 @@ class GenerateCode(goneast.NodeVisitor):
         self.visit(node.prototype)
 
         inst = ['extern_func', node.prototype.name]
+        inst.append(node.prototype.typename)
         for arg in node.prototype.argtypes:
             inst.append(arg.name)
-        inst.append(node.prototype.typename)
         self.code.append(tuple(inst))
 
     def visit_FunctionPrototype(self, node):
@@ -331,9 +331,9 @@ class GenerateCode(goneast.NodeVisitor):
         target = self.new_temp(node.type_obj)
 
         inst = ['call_func', node.name]
+        inst.append(target)
         for arg in node.exprlist.expressions:
             inst.append(arg.gen_location)
-        inst.append(target)
         self.code.append(tuple(inst))
 
         node.gen_location = target
