@@ -138,8 +138,11 @@ class Interpreter(object):
     def gen_literal_int_float_string_bool(self, value, target):
         self.vars[target] = value
 
-    def gen_print_int_float_string_bool(self, source):
+    def gen_print_int_float_string(self, source):
         print(self.vars[source])
+
+    def run_print_bool(self, source):
+        print(str(self.vars[source]).lower())
 
     def run_extern_func(self, name, ret_type, *arg_types):
         found = False

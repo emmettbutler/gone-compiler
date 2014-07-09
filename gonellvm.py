@@ -18,6 +18,10 @@ Further instructions are contained in the comments.
 
 # LLVM imports. Don't change this.
 from llvm.core import Module, Builder, Function, Type, Constant, GlobalVariable
+from llvm.core import (
+    FCMP_UEQ, FCMP_UGE, FCMP_UGT, FCMP_ULE, FCMP_ULT, FCMP_UNE,
+    ICMP_EQ, ICMP_NE, ICMP_SGE, ICMP_SGT, ICMP_SLE, ICMP_SLT
+)
 
 # Declare the LLVM type objects that you want to use for the types
 # in our intermediate code.  Basically, you're going to need to
@@ -26,6 +30,7 @@ from llvm.core import Module, Builder, Function, Type, Constant, GlobalVariable
 int_type = Type.int()         # 32-bit integer
 float_type = Type.double()      # 64-bit float
 string_type = None               # Up to you (leave until the end)
+bool_type = Type.int(1)               # Up to you (leave until the end)
 
 # A dictionary that maps the typenames used in IR to the corresponding
 # LLVM types defined above.   This is mainly provided for convenience
@@ -33,7 +38,8 @@ string_type = None               # Up to you (leave until the end)
 typemap = {
     'int': int_type,
     'float': float_type,
-    'string': string_type
+    'string': string_type,
+    'bool': bool_type
 }
 
 # The following class is going to generate the LLVM instruction stream.
@@ -107,6 +113,11 @@ class GenerateLLVM(object):
                                                     Type.function(Type.void(), [float_type], False),
                                                     "_print_float")
 
+        self.runtime['_print_bool'] = Function.new(self.module,
+                                                    Type.function(Type.void(), [bool_type], False),
+                                                    "_print_bool")
+
+
     def generate_code(self, ircode):
         # Given a sequence of SSA intermediate code tuples, generate LLVM
         # instructions using the current builder (self.builder).  Each
@@ -136,6 +147,9 @@ class GenerateLLVM(object):
     def emit_literal_float(self, value, target):
         self.temps[target] = Constant.real(float_type, value)
 
+    def emit_literal_bool(self, value, target):
+        self.temps[target] = Constant.int(bool_type, 1 if value else 0)
+
     # Allocation of variables.  Declare as global variables and set to
     # a sensible initial value.
     def emit_alloc_int(self, name):
@@ -148,6 +162,11 @@ class GenerateLLVM(object):
         var.initializer = Constant.real(float_type, 0.0)
         self.vars[name] = var
 
+    def emit_alloc_bool(self, name):
+        var = GlobalVariable.new(self.module, bool_type, name)
+        var.initializer = Constant.int(bool_type, 0)
+        self.vars[name] = var
+
     # Load/store instructions for variables.  Load needs to pull a
     # value from a global variable and store in a temporary. Store
     # goes in the opposite direction.
@@ -157,10 +176,16 @@ class GenerateLLVM(object):
     def emit_load_float(self, name, target):
         self.temps[target] = self.builder.load(self.vars[name], target)
 
+    def emit_load_bool(self, name, target):
+        self.temps[target] = self.builder.load(self.vars[name], target)
+
     def emit_store_int(self, source, target):
         self.builder.store(self.temps[source], self.vars[target])
 
     def emit_store_float(self, source, target):
+        self.builder.store(self.temps[source], self.vars[target])
+
+    def emit_store_bool(self, source, target):
         self.builder.store(self.temps[source], self.vars[target])
 
     # Binary + operator
@@ -190,6 +215,51 @@ class GenerateLLVM(object):
 
     def emit_div_float(self, left, right, target):
         self.temps[target] = self.builder.fdiv(self.temps[left], self.temps[right], target)
+
+    def emit_lt_int(self, left, right, target):
+        self.temps[target] = self.builder.icmp(ICMP_SLT, self.temps[left], self.temps[right], target)
+
+    def emit_gt_int(self, left, right, target):
+        self.temps[target] = self.builder.icmp(ICMP_SGT, self.temps[left], self.temps[right], target)
+
+    def emit_lte_int(self, left, right, target):
+        self.temps[target] = self.builder.icmp(ICMP_SLE, self.temps[left], self.temps[right], target)
+
+    def emit_gte_int(self, left, right, target):
+        self.temps[target] = self.builder.icmp(ICMP_SGE, self.temps[left], self.temps[right], target)
+
+    def emit_eq_int(self, left, right, target):
+        self.temps[target] = self.builder.icmp(ICMP_EQ, self.temps[left], self.temps[right], target)
+
+    def emit_neq_int(self, left, right, target):
+        self.temps[target] = self.builder.icmp(ICMP_NE, self.temps[left], self.temps[right], target)
+
+    def emit_lt_float(self, left, right, target):
+        self.temps[target] = self.builder.icmp(FCMP_ULT, self.temps[left], self.temps[right], target)
+
+    def emit_gt_float(self, left, right, target):
+        self.temps[target] = self.builder.icmp(FCMP_UGT, self.temps[left], self.temps[right], target)
+
+    def emit_lte_float(self, left, right, target):
+        self.temps[target] = self.builder.icmp(FCMP_ULE, self.temps[left], self.temps[right], target)
+
+    def emit_gte_float(self, left, right, target):
+        self.temps[target] = self.builder.icmp(FCMP_UGE, self.temps[left], self.temps[right], target)
+
+    def emit_eq_float(self, left, right, target):
+        self.temps[target] = self.builder.icmp(FCMP_UEQ, self.temps[left], self.temps[right], target)
+
+    def emit_neq_float(self, left, right, target):
+        self.temps[target] = self.builder.icmp(FCMP_UNE, self.temps[left], self.temps[right], target)
+
+    def emit_and_bool(self, left, right, target):
+        self.temps[target] = self.builder.and_(self.temps[left], self.temps[right], target)
+
+    def emit_or_bool(self, left, right, target):
+        self.temps[target] = self.builder.or_(self.temps[left], self.temps[right], target)
+
+    def emit_not_bool(self, source, target):
+        self.temps[target] = self.builder.not_(self.temps[source])
 
     # Unary + operator
     def emit_uadd_int(self, source, target):
@@ -223,6 +293,9 @@ class GenerateLLVM(object):
 
     def emit_print_float(self, source):
         self.builder.call(self.runtime['_print_float'], [self.temps[source]])
+
+    def emit_print_bool(self, source):
+        self.builder.call(self.runtime['_print_bool'], [self.temps[source]])
 
     # Extern function declaration.
     def emit_extern_func(self, name, rettypename, *parmtypenames):
