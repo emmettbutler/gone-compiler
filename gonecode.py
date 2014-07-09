@@ -224,8 +224,60 @@ class GenerateCode(goneast.NodeVisitor):
 
     def visit_Program(self, node):
         for statement in node.statements.statements:
+            #print(statement)
             self.visit(statement)
-            self.pprint(self.code)
+
+    def visit_VarDeclarationAssignment(self, node):
+        inst = ('alloc_' + node.type_obj.name, node.name)
+        self.code.append(inst)
+
+        self.visit(node.expr)
+
+        inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
+        self.code.append(inst)
+
+    def visit_VarDeclaration(self, node):
+        inst = ('alloc_' + node.type_obj.name, node.name)
+        self.code.append(inst)
+
+        target = self.new_temp(node.type_obj)
+
+        # make a default value for declarations without definitions
+        inst = ('literal_' + node.type_obj.name, node.type_obj.default, target)
+        self.code.append(inst)
+
+        inst = ('store_' + node.type_obj.name, target, node.name)
+        self.code.append(inst)
+
+    def visit_ConstDeclaration(self, node):
+        inst = ('alloc_' + node.type_obj.name, node.name)
+        self.code.append(inst)
+
+        self.visit(node.expr)
+
+        inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
+        self.code.append(inst)
+
+    def visit_AssignmentStatement(self, node):
+        self.visit(node.expr)
+
+        inst = ('store_' + node.expr.type_obj.name, node.expr.gen_location, node.name)
+        self.code.append(inst)
+
+    def visit_ExternDeclaration(self, node):
+        self.visit(node.prototype)
+
+        inst = ['extern_func', node.prototype.name]
+        for arg in node.prototype.argtypes:
+            inst.append(arg.name)
+        inst.append(node.prototype.typename)
+        self.code.append(tuple(inst))
+
+    def visit_FunctionPrototype(self, node):
+        self.visit(node.params)
+        node.argtypes = []
+        for parameter in node.params.parameters:
+            node.argtypes.append(parameter.type_obj)
 
     def visit_Literal(self, node):
         # Create a new temporary variable name
@@ -271,6 +323,19 @@ class GenerateCode(goneast.NodeVisitor):
         self.code.append(inst)
 
         # Store location of the result on the node
+        node.gen_location = target
+
+    def visit_NamedExpressionList(self, node):
+        self.visit(node.exprlist)
+
+        target = self.new_temp(node.type_obj)
+
+        inst = ['call_func', node.name]
+        for arg in node.exprlist.expressions:
+            inst.append(arg.gen_location)
+        inst.append(target)
+        self.code.append(tuple(inst))
+
         node.gen_location = target
 
     def visit_PrintStatement(self, node):
