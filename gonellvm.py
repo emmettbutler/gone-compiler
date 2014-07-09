@@ -10,7 +10,7 @@ prior to starting this project.   Don't rush into it.
 The basic idea of this project is exactly the same as the interpreter
 in Project 4.   You'll make a class that walks through the instruction
 sequence and triggers a method for each kind of instruction.  Instead
-of running the instruction however, you'll be generating LLVM 
+of running the instruction however, you'll be generating LLVM
 instructions.
 
 Further instructions are contained in the comments.
@@ -20,30 +20,31 @@ Further instructions are contained in the comments.
 from llvm.core import Module, Builder, Function, Type, Constant, GlobalVariable
 
 # Declare the LLVM type objects that you want to use for the types
-# in our intermediate code.  Basically, you're going to need to 
+# in our intermediate code.  Basically, you're going to need to
 # declare your integer, float, and string types here.
 
-int_type    = Type.int()         # 32-bit integer
-float_type  = Type.double()      # 64-bit float
+int_type = Type.int()         # 32-bit integer
+float_type = Type.double()      # 64-bit float
 string_type = None               # Up to you (leave until the end)
 
 # A dictionary that maps the typenames used in IR to the corresponding
 # LLVM types defined above.   This is mainly provided for convenience
 # so you can quickly look up the type object given its type name.
 typemap = {
-    'int' : int_type,
-    'float' : float_type,
-    'string' : string_type
+    'int': int_type,
+    'float': float_type,
+    'string': string_type
 }
 
-# The following class is going to generate the LLVM instruction stream.  
+# The following class is going to generate the LLVM instruction stream.
 # The basic features of this class are going to mirror the experiments
 # you tried in Exercise 5.  The execution module is very similar
-# to the interpreter written in Project 4.  See specific comments 
-# in the class. 
+# to the interpreter written in Project 4.  See specific comments
+# in the class.
+
 
 class GenerateLLVM(object):
-    def __init__(self,name="module"):
+    def __init__(self, name="module"):
         # Perform the basic LLVM initialization.  You need the following parts:
         #
         #    1.  A top-level Module object
@@ -80,7 +81,7 @@ class GenerateLLVM(object):
         #      ('add_int', 'int_1','int_4','int_5')
         #      ('store_int', 'int_5', 'a')
         #
-        # The self.temp dictionary below is used to map names such as 'int_1', 
+        # The self.temp dictionary below is used to map names such as 'int_1',
         # 'int_2' to their corresponding LLVM values.  Essentially, every time
         # you make anything in LLVM, it gets stored here.
         self.temps = {}
@@ -96,15 +97,16 @@ class GenerateLLVM(object):
         # functions are implemented in C in a separate file gonert.c
 
         self.runtime = {}
-        
+
         # Declare printing functions
         self.runtime['_print_int'] = Function.new(self.module,
-                                                 Type.function(Type.void(), [int_type], False),
-                                                 "_print_int")
+                                                  Type.function(Type.void(), [int_type], False),
+                                                  "_print_int")
 
         self.runtime['_print_float'] = Function.new(self.module,
-                                                   Type.function(Type.void(), [float_type], False),
-                                                   "_print_float")
+                                                    Type.function(Type.void(), [float_type], False),
+                                                    "_print_float")
+
     def generate_code(self, ircode):
         # Given a sequence of SSA intermediate code tuples, generate LLVM
         # instructions using the current builder (self.builder).  Each
@@ -112,10 +114,10 @@ class GenerateLLVM(object):
         # form self.emit_opcode(args)
         for op in ircode:
             opcode = op[0]
-            if hasattr(self, "emit_"+opcode):
-                getattr(self, "emit_"+opcode)(*op[1:])
+            if hasattr(self, "emit_" + opcode):
+                getattr(self, "emit_" + opcode)(*op[1:])
             else:
-                print("Warning: No emit_"+opcode+"() method")
+                print("Warning: No emit_" + opcode + "() method")
 
         # Add a return statement.  Note, at this point, we don't really have
         # user-defined functions so this is a bit of hack--it may be removed later.
@@ -132,7 +134,7 @@ class GenerateLLVM(object):
 
     def emit_literal_float(self, value, target):
         pass                # You must implement
-    
+
     # Allocation of variables.  Declare as global variables and set to
     # a sensible initial value.
     def emit_alloc_int(self, name):
@@ -142,7 +144,6 @@ class GenerateLLVM(object):
 
     def emit_alloc_float(self, name):
         pass                # You must implement
-
 
     # Load/store instructions for variables.  Load needs to pull a
     # value from a global variable and store in a temporary. Store
@@ -158,7 +159,6 @@ class GenerateLLVM(object):
 
     def emit_store_float(self, source, target):
         pass                 # You must implement
-
 
     # Binary + operator
     def emit_add_int(self, left, right, target):
@@ -213,7 +213,7 @@ class GenerateLLVM(object):
     def emit_print_float(self, source):
         pass                 # You must implement
 
-    # Extern function declaration.  
+    # Extern function declaration.
     def emit_extern_func(self, name, rettypename, *parmtypenames):
         rettype = typemap[rettypename]
         parmtypes = [typemap[pname] for pname in parmtypenames]
@@ -227,6 +227,7 @@ class GenerateLLVM(object):
 #######################################################################
 #                 DO NOT MODIFY ANYTHING BELOW HERE
 #######################################################################
+
 
 def main():
     import gonelex
@@ -243,7 +244,7 @@ def main():
 
     lexer = gonelex.make_lexer()
     parser = goneparse.make_parser()
-    with subscribe_errors(lambda msg: sys.stdout.write(msg+"\n")):
+    with subscribe_errors(lambda msg: sys.stdout.write(msg + "\n")):
         program = parser.parse(open(sys.argv[1]).read())
         # Check the program
         gonecheck.check_program(program)
@@ -263,10 +264,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-        
-        
-        
