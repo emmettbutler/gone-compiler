@@ -168,8 +168,6 @@ class Interpreter(object):
     def run_call_func(self, name, target, *func_args):
         self.vars[target] = self.vars[name](*[self.vars[a] for a in func_args])
 
-    # You must implement the rest of the operations below
-
 # ----------------------------------------------------------------------
 #                       DO NOT MODIFY ANYTHING BELOW
 # ----------------------------------------------------------------------
