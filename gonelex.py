@@ -117,7 +117,9 @@ tokens = [
     'COMMA',
 
     # Literals
-    'INTEGER', 'FLOAT', 'STRING',
+    'INTEGER', 'FLOAT', 'STRING', 'BOOL',
+
+    'LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ', 'AND', 'OR', 'NOT'
 ]
 
 # ----------------------------------------------------------------------
@@ -142,6 +144,16 @@ t_SEMI      = r';'
 t_LPAREN    = r'\('
 t_RPAREN    = r'\)'
 t_COMMA     = r','
+t_LT        = r'<'
+t_GT        = r'>'
+t_LTE       = r'<='
+t_GTE       = r'>='
+t_EQ        = r'=='
+t_NEQ       = r'!='
+t_AND       = r'&&'
+t_OR        = r'\|\|'
+t_NOT       = r'!'
+t_BOOL      = r'(true|false)'
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -215,7 +227,9 @@ def t_ID(t):
         'var': 'VAR',
         'print': 'PRINT',
         'func': 'FUNC',
-        'extern': 'EXTERN'
+        'extern': 'EXTERN',
+        'true': 'BOOL',
+        'false': 'BOOL'
     }
 
     # *** YOU MUST IMPLEMENT ***
