@@ -112,8 +112,9 @@ class GenerateLLVM(object):
         # instructions using the current builder (self.builder).  Each
         # opcode tuple (opcode, args) is dispatched to a method of the
         # form self.emit_opcode(args)
-        for op in ircode:
+        for op in ircode.code:
             opcode = op[0]
+            print(opcode)
             if hasattr(self, "emit_" + opcode):
                 getattr(self, "emit_" + opcode)(*op[1:])
             else:
@@ -133,7 +134,7 @@ class GenerateLLVM(object):
         self.temps[target] = Constant.int(int_type, value)
 
     def emit_literal_float(self, value, target):
-        pass                # You must implement
+        self.temps[target] = Constant.real(float_type, value)
 
     # Allocation of variables.  Declare as global variables and set to
     # a sensible initial value.
@@ -143,7 +144,9 @@ class GenerateLLVM(object):
         self.vars[name] = var
 
     def emit_alloc_float(self, name):
-        pass                # You must implement
+        var = GlobalVariable.new(self.module, float_type, name)
+        var.initializer = Constant.real(float_type, 0.0)
+        self.vars[name] = var
 
     # Load/store instructions for variables.  Load needs to pull a
     # value from a global variable and store in a temporary. Store
@@ -152,66 +155,74 @@ class GenerateLLVM(object):
         self.temps[target] = self.builder.load(self.vars[name], target)
 
     def emit_load_float(self, name, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.load(self.vars[name], target)
 
     def emit_store_int(self, source, target):
         self.builder.store(self.temps[source], self.vars[target])
 
     def emit_store_float(self, source, target):
-        pass                 # You must implement
+        self.builder.store(self.temps[source], self.vars[target])
 
     # Binary + operator
     def emit_add_int(self, left, right, target):
         self.temps[target] = self.builder.add(self.temps[left], self.temps[right], target)
 
     def emit_add_float(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.fadd(self.temps[left], self.temps[right], target)
 
     # Binary - operator
     def emit_sub_int(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.sub(self.temps[left], self.temps[right], target)
 
     def emit_sub_float(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.fsub(self.temps[left], self.temps[right], target)
 
     # Binary * operator
     def emit_mul_int(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.mul(self.temps[left], self.temps[right], target)
 
     def emit_mul_float(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.fmul(self.temps[left], self.temps[right], target)
 
     # Binary / operator
     def emit_div_int(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.sdiv(self.temps[left], self.temps[right], target)
 
     def emit_div_float(self, left, right, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.fdiv(self.temps[left], self.temps[right], target)
 
     # Unary + operator
     def emit_uadd_int(self, source, target):
-        pass                 # You must implement
-
-    def emit_uadd_float(self, source, target):
-        pass                 # You must implement
-
-    # Unary - operator
-    def emit_usub_int(self, source, target):
-        pass                 # You must implement
-        self.temps[target] = self.builder.sub(
+        self.temps[target] = self.builder.add(
             Constant.int(int_type, 0),
             self.temps[source],
             target)
 
+    def emit_uadd_float(self, source, target):
+        self.temps[target] = self.builder.fadd(
+            Constant.real(float_type, 0.0),
+            self.temps[source],
+            target)
+
+    # Unary - operator
+    def emit_usub_int(self, source, target):
+        self.temps[target] = self.builder.mul(
+            Constant.int(int_type, -1),
+            self.temps[source],
+            target)
+
     def emit_usub_float(self, source, target):
-        pass                 # You must implement
+        self.temps[target] = self.builder.fmul(
+            Constant.real(float_type, -1.0),
+            self.temps[source],
+            target)
 
     # Print statements
     def emit_print_int(self, source):
         self.builder.call(self.runtime['_print_int'], [self.temps[source]])
 
     def emit_print_float(self, source):
-        pass                 # You must implement
+        self.builder.call(self.runtime['_print_float'], [self.temps[source]])
 
     # Extern function declaration.
     def emit_extern_func(self, name, rettypename, *parmtypenames):
@@ -221,8 +232,11 @@ class GenerateLLVM(object):
         self.vars[name] = Function.new(self.module, func_type, name)
 
     # Call an external function.
-    def emit_call_func(self, funcname, *args):
-        pass                 # You must implement
+    def emit_call_func(self, funcname, target, *funcargs):
+        resolved_args = []
+        for arg in funcargs:
+            resolved_args.append(self.temps[arg])
+        self.temps[target] = self.builder.call(self.vars[funcname], resolved_args)
 
 #######################################################################
 #                 DO NOT MODIFY ANYTHING BELOW HERE
