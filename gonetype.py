@@ -62,7 +62,7 @@ class FloatType(GoneType):
 class StringType(GoneType):
     def __init__(self):
         self.name = "string"
-        self.bin_ops = {"+"}
+        self.bin_ops = {"+", "==", "!="}
         self.un_ops = {}
         self.default = ""
 

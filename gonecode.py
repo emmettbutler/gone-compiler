@@ -174,11 +174,20 @@ binary_ops = {
     '-': 'sub',
     '*': 'mul',
     '/': 'div',
+    '<': 'lt',
+    '>': 'gt',
+    '<=': 'lte',
+    '>=': 'gte',
+    '==': 'eq',
+    '!=': 'neq',
+    '&&': 'and',
+    '||': 'or'
 }
 
 unary_ops = {
     '+': 'uadd',
-    '-': 'usub'
+    '-': 'usub',
+    '!': 'not'
 }
 
 # STEP 2: Implement the following Node Visitor class so that it creates
@@ -325,6 +334,18 @@ class GenerateCode(goneast.NodeVisitor):
         # Store location of the result on the node
         node.gen_location = target
 
+    def visit_ComparisonBinOp(self, node):
+        self.visit(node.left)
+        self.visit(node.right)
+
+        target = self.new_temp(node.type_obj)
+
+        opcode = binary_ops[node.operator] + "_" + node.left.type_obj.name
+        inst = (opcode, node.left.gen_location, node.right.gen_location, target)
+        self.code.append(inst)
+
+        node.gen_location = target
+
     def visit_NamedExpressionList(self, node):
         self.visit(node.exprlist)
 
@@ -337,6 +358,11 @@ class GenerateCode(goneast.NodeVisitor):
         self.code.append(tuple(inst))
 
         node.gen_location = target
+
+    def visit_ExpressionGrouping(self, node):
+        self.visit(node.expr)
+
+        node.gen_location = node.expr.gen_location
 
     def visit_PrintStatement(self, node):
         # Visit the printed expression

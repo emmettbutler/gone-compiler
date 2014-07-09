@@ -81,13 +81,13 @@ class Interpreter(object):
     # YOU MUST IMPLEMENT:  Methods for different opcodes.  A few sample
     # opcodes are shown below to get you started.
 
-    def gen_alloc_int_float_string(self, name):
+    def gen_alloc_int_float_string_bool(self, name):
         self.vars[name] = None
 
-    def gen_store_int_float_string(self, target, name):
+    def gen_store_int_float_string_bool(self, target, name):
         self.vars[name] = self.vars[target]
 
-    def gen_load_int_float_string(self, name, target):
+    def gen_load_int_float_string_bool(self, name, target):
         self.vars[target] = self.vars[name]
 
     def gen_sub_int_float(self, left, right, target):
@@ -102,16 +102,43 @@ class Interpreter(object):
     def gen_add_int_float_string(self, left, right, target):
         self.vars[target] = self.vars[left] + self.vars[right]
 
+    def gen_lt_int_float(self, left, right, target):
+        self.vars[target] = self.vars[left] < self.vars[right]
+
+    def gen_gt_int_float(self, left, right, target):
+        self.vars[target] = self.vars[left] > self.vars[right]
+
+    def gen_lte_int_float(self, left, right, target):
+        self.vars[target] = self.vars[left] <= self.vars[right]
+
+    def gen_gte_int_float(self, left, right, target):
+        self.vars[target] = self.vars[left] >= self.vars[right]
+
+    def gen_eq_int_float_bool_string(self, left, right, target):
+        self.vars[target] = self.vars[left] == self.vars[right]
+
+    def gen_neq_int_float_bool_string(self, left, right, target):
+        self.vars[target] = self.vars[left] != self.vars[right]
+
+    def gen_and_bool(self, left, right, target):
+        self.vars[target] = self.vars[left] and self.vars[right]
+
+    def gen_or_bool(self, left, right, target):
+        self.vars[target] = self.vars[left] or self.vars[right]
+
     def gen_uadd_int_float(self, source, target):
         self.vars[target] = self.vars[source]
 
     def gen_usub_int_float(self, source, target):
         self.vars[target] = -1 * self.vars[source]
 
-    def gen_literal_int_float_string(self, value, target):
+    def gen_not_bool(self, source, target):
+        self.vars[target] = not self.vars[source]
+
+    def gen_literal_int_float_string_bool(self, value, target):
         self.vars[target] = value
 
-    def gen_print_int_float_string(self, source):
+    def gen_print_int_float_string_bool(self, source):
         print(self.vars[source])
 
     def run_extern_func(self, name, ret_type, *arg_types):
