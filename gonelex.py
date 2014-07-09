@@ -153,7 +153,6 @@ t_NEQ       = r'!='
 t_AND       = r'&&'
 t_OR        = r'\|\|'
 t_NOT       = r'!'
-t_BOOL      = r'(true|false)'
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -169,6 +168,12 @@ t_BOOL      = r'(true|false)'
 def t_FLOAT(t):
     r'(([0-9]*\.[0-9]*([eE][+-]?1)?)|([0-9]*[eE][+-]?1))'
     t.value = float(t.value)               # Conversion to Python float
+    return t
+
+
+def t_BOOL(t):
+    r'(true|false)'
+    t.value = True if t.value == "true" else False
     return t
 
 # Integer constant. For example:

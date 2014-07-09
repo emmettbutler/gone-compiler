@@ -99,9 +99,11 @@ class SymbolTable(object):
             int: gonetype.int_type,
             float: gonetype.float_type,
             str: gonetype.string_type,
+            bool: gonetype.bool_type,
             'int': gonetype.int_type,
             'float': gonetype.float_type,
-            'string': gonetype.string_type
+            'string': gonetype.string_type,
+            'bool': gonetype.bool_type
         }
 
     def add(self, symbol, data):
@@ -134,6 +136,7 @@ class CheckProgramVisitor(NodeVisitor):
         self.symbol_table.add("int", gonetype.int_type)
         self.symbol_table.add("float", gonetype.float_type)
         self.symbol_table.add("string", gonetype.string_type)
+        self.symbol_table.add("bool", gonetype.bool_type)
 
     def error(self, lineno, errstring):
         errstring = "Error: {}: {}".format(lineno, errstring)
@@ -158,22 +161,33 @@ class CheckProgramVisitor(NodeVisitor):
                 .format(node.expr.type_obj.name, node.operator))
         node.type_obj = node.expr.type_obj
 
+    def _visit_BinOp_helper(self, node, override_type=None):
+        if node.right.type_obj != node.left.type_obj:
+            self.error(node.lineno, "cannot apply '{}' to '{}' and '{}'"
+                .format(node.operator, node.left.type_obj.name, node.right.type_obj.name))
+            node.type_obj = gonetype.error_type
+        else:
+            if override_type is not None:
+                node.type_obj = override_type
+            else:
+                node.type_obj = node.right.type_obj
+        if node.operator not in node.right.type_obj.bin_ops:
+            if node.type_obj != gonetype.error_type:
+                self.error(node.lineno, "{} does not support operator '{}'"
+                    .format(node.right.type_obj.name, node.operator))
+
     def visit_BinOp(self, node):
         # 1. Make sure left and right operands have the same type
         # 2. Make sure the operation is supported
         # 3. Assign the result type
         self.visit(node.left)
         self.visit(node.right)
-        if node.right.type_obj != node.left.type_obj:
-            self.error(node.lineno, "cannot apply '{}' to '{}' and '{}'"
-                .format(node.operator, node.left.type_obj.name, node.right.type_obj.name))
-            node.type_obj = gonetype.error_type
-        else:
-            node.type_obj = node.right.type_obj
-        if node.operator not in node.type_obj.bin_ops:
-            if node.type_obj != gonetype.error_type:
-                self.error(node.lineno, "{} does not support operator '{}'"
-                    .format(node.type_obj.name, node.operator))
+        self._visit_BinOp_helper(node)
+
+    def visit_ComparisonBinOp(self, node):
+        self.visit(node.left)
+        self.visit(node.right)
+        self._visit_BinOp_helper(node, override_type=gonetype.bool_type)
 
     def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined

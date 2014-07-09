@@ -81,6 +81,9 @@ class BinOp(AST):
     '''
     _fields = ['left', 'operator', 'right']
 
+class ComparisonBinOp(AST):
+    _fields = ['left', 'operator', 'right']
+
 class ExpressionGrouping(AST):
     '''
     LPAREN expression RPAREN

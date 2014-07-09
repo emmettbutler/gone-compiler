@@ -46,7 +46,7 @@ class GoneType(object):
 class IntType(GoneType):
     def __init__(self):
         self.name = "int"
-        self.bin_ops = {"+", "-", "*", "/"}
+        self.bin_ops = {"+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!="}
         self.un_ops = {"+", "-"}
         self.default = 0
 
@@ -54,7 +54,7 @@ class IntType(GoneType):
 class FloatType(GoneType):
     def __init__(self):
         self.name = "float"
-        self.bin_ops = {"+", "-", "*", "/"}
+        self.bin_ops = {"+", "-", "*", "/", "<", ">", "<=", ">=", "==", "!="}
         self.un_ops = {"+", "-"}
         self.default = 0.0
 
@@ -65,6 +65,14 @@ class StringType(GoneType):
         self.bin_ops = {"+"}
         self.un_ops = {}
         self.default = ""
+
+
+class BoolType(GoneType):
+    def __init__(self):
+        self.name = "bool"
+        self.bin_ops = {"!=", "==", "||", "&&"}
+        self.un_ops = {"!"}
+        self.default = "false"
 
 
 class ErrorType(GoneType):
@@ -80,6 +88,7 @@ class ErrorType(GoneType):
 int_type = IntType()
 float_type = FloatType()
 string_type = StringType()
+bool_type = BoolType()
 error_type = ErrorType()
 
 # In your type checking code, you will need to reference the

@@ -44,21 +44,25 @@ expression :  + expression
            | expression - expression
            | expression * expression
            | expression / expression
-           | expression && expression
-           | expression || expression
-           | expression < expression
-           | expression > expression
-           | expression <= expression
-           | expression >= expression
-           | expression == expression
-           | expression != expression
            | ( expression )
            | ID ( exprlist )
            | location
+           | comparison_binop
            | literal
 
+comparison_binop : expression && expression
+                 | expression || expression
+                 | expression < expression
+                 | expression > expression
+                 | expression <= expression
+                 | expression >= expression
+                 | expression == expression
+                 | expression != expression
+
 exprlist : | exprlist , expression
+           | exprlist , comparison_binop
            | expression
+           | comparison_binop
            | empty
 
 literal : INTEGER
@@ -272,13 +276,8 @@ def p_print_statemnt(p):
 def p_expression_literal(p):
     '''
     expression : literal
-    '''
-    p[0] = p[1]
-
-
-def p_expression_location(p):
-    '''
-    expression : location
+               | location
+               | comparison_binop
     '''
     p[0] = p[1]
 
@@ -303,16 +302,22 @@ def p_expression_binop(p):
                | expression MINUS expression
                | expression TIMES expression
                | expression DIVIDE expression
-               | expression AND expression
-               | expression OR expression
-               | expression LT expression
-               | expression GT expression
-               | expression LTE expression
-               | expression GTE expression
-               | expression EQ expression
-               | expression NEQ expression
     '''
     p[0] = BinOp(p[1], p[2], p[3], lineno=p.lineno(2))
+
+
+def p_comparison_binop(p):
+    '''
+    comparison_binop : expression AND expression
+                     | expression OR expression
+                     | expression LT expression
+                     | expression GT expression
+                     | expression LTE expression
+                     | expression GTE expression
+                     | expression EQ expression
+                     | expression NEQ expression
+    '''
+    p[0] = ComparisonBinOp(p[1], p[2], p[3], lineno=p.lineno(2))
 
 
 def p_expression_unary(p):
@@ -334,6 +339,7 @@ def p_expression_parenlist(p):
 def p_exprlist(p):
     '''
     exprlist : exprlist COMMA expression
+             | exprlist COMMA comparison_binop
     '''
     p[0] = p[1]
     p[0].expressions.append(p[3])
@@ -342,6 +348,7 @@ def p_exprlist(p):
 def p_exprlist_first(p):
     '''
     exprlist : expression
+             | comparison_binop
     '''
     p[0] = ExpressionList([p[1]], lineno=p.lineno(1))
 
