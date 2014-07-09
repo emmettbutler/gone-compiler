@@ -9,6 +9,7 @@ each kind of grammar rule.  A few sample AST nodes can be found at the
 top of this file.  You will need to add more on your own.
 '''
 
+
 # DO NOT MODIFY
 class AST(object):
     '''
@@ -19,13 +20,19 @@ class AST(object):
     additional arguments specified as keywords are also assigned.
     '''
     _fields = []
-    def __init__(self,*args,**kwargs):
+
+    def __init__(self, *args, **kwargs):
         assert len(args) == len(self._fields)
         for name,value in zip(self._fields,args):
             setattr(self,name,value)
         # Assign additional keyword arguments if supplied
         for name,value in kwargs.items():
             setattr(self,name,value)
+
+    def __repr__(self):
+        attrs = [(a, str(getattr(self, a))) for a in self.__dir__()
+                    if not a.startswith('_') and a != 'lineno' and not isinstance(getattr(self, a), AST)]
+        return "{}: {}".format(self.__class__.__name__, ", ".join(["{}: {}".format(a[0], a[1]) for a in attrs]))
 
 # ----------------------------------------------------------------------
 # Specific AST nodes.
