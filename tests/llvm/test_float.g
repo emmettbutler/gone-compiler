@@ -13,6 +13,6 @@ print fc;              // Float printing.  Outputs 6.0
 print fa + fb;         // Outputs 3.0
 print fa - fb;         // Outputs -1.0
 print fb * fc;         // Outputs 12.0
-print fc / fb;         // Outputs 2.0
+print fc / fb;         // Outputs 3.0
 print +fa;             // Outputs 1.0
 print -fa;             // Outputs -1.0
