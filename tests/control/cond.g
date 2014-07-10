@@ -5,8 +5,6 @@ var b int = 3;
 
 if a < b {
    print a;
-} else {
-  print b;
 }
 
 if a > b {
@@ -14,4 +12,3 @@ if a > b {
 } else {
   print b;
 }
-

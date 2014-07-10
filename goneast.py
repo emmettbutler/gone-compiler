@@ -192,7 +192,7 @@ class WhileStatement(AST):
 
 
 class ConditionalStatement(AST):
-    _fields = ['expr', 'statements']
+    _fields = ['expr', 'true_statements', 'false_statements']
 
 # You need to add more nodes here.  Suggested nodes include
 # BinaryOperator, UnaryOperator, ConstDeclaration, VarDeclaration,

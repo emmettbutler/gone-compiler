@@ -17,6 +17,13 @@ statement :  const_declaration
           |  extern_declaration
           |  assign_statement
           |  print_statement
+          |  conditional_statement
+          |  while_statement
+
+conditional_statement : IF expression LBRACE statements RBRACE
+                      | IF expression LBRACE statements RBRACE ELSE LBRACE statements RBRACE
+
+while_statement : WHILE expression LBRACE statements RBRACE
 
 const_declaration : CONST ID = expression ;
 
@@ -193,8 +200,31 @@ def p_statement(p):
               | var_declaration
               | assign_statement
               | extern_declaration
+              | conditional_statement
+              | while_statement
     '''
     p[0] = p[1]
+
+
+def p_conditional_statement(p):
+    '''
+    conditional_statement : IF expression LBRACE statements RBRACE
+    '''
+    p[0] = ConditionalStatement(p[2], p[4], None, lineno=p.lineno(1))
+
+
+def p_conditional_statement_else(p):
+    '''
+    conditional_statement : IF expression LBRACE statements RBRACE ELSE LBRACE statements RBRACE
+    '''
+    p[0] = ConditionalStatement(p[2], p[4], p[8], lineno=p.lineno(1))
+
+
+def p_while_statement(p):
+    '''
+    while_statement : WHILE expression LBRACE statements RBRACE
+    '''
+    p[0] = WhileStatement(p[2], p[4], lineno=p.lineno(1))
 
 
 def p_var_declaration(p):
