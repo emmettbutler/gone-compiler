@@ -307,7 +307,7 @@ class GenerateCode(goneast.NodeVisitor):
 
         node.gen_location = target
 
-    def visit_UnaryOp(self, node):
+    def _visit_UnaryOp_helper(self, node):
         self.visit(node.expr)
 
         target = self.new_temp(node.type_obj)
@@ -317,6 +317,12 @@ class GenerateCode(goneast.NodeVisitor):
         self.code.append(inst)
 
         node.gen_location = target
+
+    def visit_UnaryOp(self, node):
+        self._visit_UnaryOp_helper(node)
+
+    def visit_BooleanUnaryOp(self, node):
+        self._visit_UnaryOp_helper(node)
 
     def visit_BinOp(self, node):
         # Visit the left and right expressions

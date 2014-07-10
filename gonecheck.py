@@ -189,6 +189,13 @@ class CheckProgramVisitor(NodeVisitor):
         self.visit(node.right)
         self._visit_BinOp_helper(node, override_type=gonetype.bool_type)
 
+    def visit_BooleanUnaryOp(self, node):
+        self.visit(node.expr)
+        if node.expr.type_obj != gonetype.bool_type:
+            self.error(node.lineno, "{} does not support unary {}"
+                .format(node.expr.type_obj.name, node.operator))
+        node.type_obj = gonetype.bool_type
+
     def visit_AssignmentStatement(self, node):
         # 1. Make sure the location of the assignment is defined
         # 2. Check that assignment is allowed

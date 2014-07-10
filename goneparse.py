@@ -39,7 +39,6 @@ print_statement : PRINT expression ;
 
 expression :  + expression
            |  - expression
-           |  ! expression
            | expression + expression
            | expression - expression
            | expression * expression
@@ -48,6 +47,7 @@ expression :  + expression
            | ID ( exprlist )
            | location
            | comparison_binop
+           | boolean_uop
            | literal
 
 comparison_binop : expression && expression
@@ -58,6 +58,8 @@ comparison_binop : expression && expression
                  | expression >= expression
                  | expression == expression
                  | expression != expression
+
+boolean_uop : ! expression
 
 exprlist : | exprlist , expression
            | exprlist , comparison_binop
@@ -278,8 +280,16 @@ def p_expression_literal(p):
     expression : literal
                | location
                | comparison_binop
+               | boolean_uop
     '''
     p[0] = p[1]
+
+
+def p_boolean_uop(p):
+    '''
+    boolean_uop : NOT expression
+    '''
+    p[0] = BooleanUnaryOp(p[1], p[2], lineno=p.lineno(1))
 
 
 def p_location(p):
