@@ -193,6 +193,13 @@ def p_statements_first(p):
     p[0] = Statements([p[1]], lineno=p.lineno(1))
 
 
+def p_statements_empty(p):
+    '''
+    statements :  empty
+    '''
+    p[0] = Statements([], lineno=p.lineno(1))
+
+
 def p_statement(p):
     '''
     statement : print_statement
