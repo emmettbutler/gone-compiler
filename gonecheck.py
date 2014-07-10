@@ -1,89 +1,4 @@
-# gonecheck.py
-'''
-Project 3 : Program Checking
-============================
-In this project you need to perform semantic checks on your program.
-There are a few different aspects of doing this.
-
-First, you will need to define a symbol table that keeps track of
-previously declared identifiers.  The symbol table will be consulted
-whenever the compiler needs to lookup information about variable and
-constant declarations.
-
-Next, you will need to define objects that represent the different
-builtin datatypes and record information about their capabilities.
-See the file gonetype.py.
-
-Finally, you'll need to write code that walks the AST and enforces
-a set of semantic rules.  Here is a complete list of everything you'll
-need to check:
-
-1.  Names and symbols:
-
-    All identifiers must be defined before they are used.  This includes variables,
-    constants, and typenames.  For example, this kind of code generates an error:
-
-       a = 3;              // Error. 'a' not defined.
-       var a int;
-
-    Note: typenames such as "int", "float", and "string" are built-in names that
-    should be defined at the start of the program.
-
-2.  Types of literals
-
-    All literal symbols must be assigned a type of "int", "float", or "string".
-    For example:
-
-       const a = 42;         // Type "int"
-       const b = 4.2;        // Type "float"
-       const c = "forty";    // Type "string"
-
-    To do this assignment, check the Python type of the literal value and attach
-    a type name as appropriate.
-
-3.  Binary operator type checking
-
-    Binary operators only operate on operands of the same type and produce a
-    result of the same type.   Otherwise, you get a type error.  For example:
-
-        var a int = 2;
-        var b float = 3.14;
-
-        var c int = a + 3;    // OK
-        var d int = a + b;    // Error.  int + float
-        var e int = b + 4.5;  // Error.  int = float
-
-4.  Unary operator type checking.
-
-    Unary operators return a result that's the same type as the operand.
-
-5.  Supported operators
-
-    Here are the operators supported by each type:
-
-    int:      binary { +, -, *, /}, unary { +, -}
-    float:    binary { +, -, *, /}, unary { +, -}
-    string:   binary { + }, unary { }
-
-    Attempts to use unsupported operators should result in an error.
-    For example:
-
-        var string a = "Hello" + "World";     // OK
-        var string b = "Hello" * "World";     // Error (unsupported op *)
-
-6.  Assignment.
-
-    The left and right hand sides of an assignment operation must be
-    declared as the same type.
-
-    Values can only be assigned to variable declarations, not
-    to constants.
-
-For walking the AST, use the NodeVisitor class defined in goneast.py.
-A shell of the code is provided below.
-'''
-
-from errors import error
+from errors import error as _error
 from goneast import *
 import gonetype
 
@@ -139,9 +54,7 @@ class CheckProgramVisitor(NodeVisitor):
         self.symbol_table.add("bool", gonetype.bool_type)
 
     def error(self, lineno, errstring):
-        errstring = "Error: {}: {}".format(lineno, errstring)
-        print(errstring)
-        # raise SyntaxError(errstring)
+        _error(lineno, errstring)
 
     def visit_Program(self, node):
         self.visit(node.statements)
