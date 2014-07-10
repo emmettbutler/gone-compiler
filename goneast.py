@@ -23,15 +23,15 @@ class AST(object):
 
     def __init__(self, *args, **kwargs):
         assert len(args) == len(self._fields)
-        for name,value in zip(self._fields,args):
-            setattr(self,name,value)
+        for name, value in zip(self._fields, args):
+            setattr(self, name, value)
         # Assign additional keyword arguments if supplied
-        for name,value in kwargs.items():
-            setattr(self,name,value)
+        for name, value in kwargs.items():
+            setattr(self, name, value)
 
     def __repr__(self):
         attrs = [(a, str(getattr(self, a))) for a in self.__dir__()
-                    if not a.startswith('_') and a != 'lineno' and not isinstance(getattr(self, a), AST)]
+                 if not a.startswith('_') and a != 'lineno' and not isinstance(getattr(self, a), AST)]
         return "{}: {}".format(self.__class__.__name__, ", ".join(["{}: {}".format(a[0], a[1]) for a in attrs]))
 
 # ----------------------------------------------------------------------
@@ -48,11 +48,13 @@ class AST(object):
 
 # A few sample nodes
 
+
 class Program(AST):
     '''
     statements | empty
     '''
     _fields = ['statements']
+
 
 class Statements(AST):
     '''
@@ -60,17 +62,20 @@ class Statements(AST):
     '''
     _fields = ['statements']
 
+
 class Location(AST):
     '''
     ID
     '''
     _fields = ['name']
 
+
 class UnaryOp(AST):
     '''
     PLUS expression | MINUS expression
     '''
     _fields = ['operator', 'expr']
+
 
 class BinOp(AST):
     '''
@@ -81,11 +86,14 @@ class BinOp(AST):
     '''
     _fields = ['left', 'operator', 'right']
 
+
 class ComparisonBinOp(AST):
     _fields = ['left', 'operator', 'right']
 
+
 class BooleanUnaryOp(AST):
     _fields = ['operator', 'expr']
+
 
 class ExpressionGrouping(AST):
     '''
@@ -93,11 +101,13 @@ class ExpressionGrouping(AST):
     '''
     _fields = ['expr']
 
+
 class ConstDeclaration(AST):
     '''
     CONST ID ASSIGN expression SEMI
     '''
     _fields = ['name', 'expr']
+
 
 class VarDeclaration(AST):
     '''
@@ -105,11 +115,13 @@ class VarDeclaration(AST):
     '''
     _fields = ['name', 'typename']
 
+
 class VarDeclarationAssignment(AST):
     '''
     VAR ID typename ASSIGN expression SEMI
     '''
     _fields = ['name', 'typename', 'expr']
+
 
 class AssignmentStatement(AST):
     '''
@@ -117,11 +129,13 @@ class AssignmentStatement(AST):
     '''
     _fields = ['name', 'expr']
 
+
 class ExpressionList(AST):
     '''
     exprlist COMMA expression
     '''
     _fields = ['expressions']
+
 
 class NamedExpressionList(AST):
     '''
@@ -129,11 +143,13 @@ class NamedExpressionList(AST):
     '''
     _fields = ['name', 'exprlist']
 
+
 class ExternDeclaration(AST):
     '''
     EXTERN func_prototype SEMI
     '''
     _fields = ['prototype']
+
 
 class FunctionPrototype(AST):
     '''
@@ -141,11 +157,13 @@ class FunctionPrototype(AST):
     '''
     _fields = ['name', 'params', 'typename']
 
+
 class Parameters(AST):
     '''
     parameters COMMA parm_declaration
     '''
     _fields = ['parameters']
+
 
 class ParameterDeclaration(AST):
     '''
@@ -153,11 +171,13 @@ class ParameterDeclaration(AST):
     '''
     _fields = ['name', 'typename']
 
+
 class PrintStatement(AST):
     '''
     print expression ;
     '''
     _fields = ['expr']
+
 
 class Literal(AST):
     '''
@@ -165,8 +185,10 @@ class Literal(AST):
     '''
     _fields = ['value']
 
+
 class WhileStatement(AST):
     _fields = ['expr', 'statements']
+
 
 class ConditionalStatement(AST):
     _fields = ['expr', 'statements']
@@ -181,6 +203,7 @@ class ConditionalStatement(AST):
 
 # The following classes for visiting and rewriting the AST are taken
 # from Python's ast module.
+
 
 # DO NOT MODIFY
 class NodeVisitor(object):
@@ -205,7 +228,7 @@ class NodeVisitor(object):
         tree = parse(txt)
         VisitOps().visit(tree)
     '''
-    def visit(self,node):
+    def visit(self, node):
         '''
         Execute a method of the form visit_NodeName(node) where
         NodeName is the name of the class of a particular node.
@@ -217,20 +240,21 @@ class NodeVisitor(object):
         else:
             return None
 
-    def generic_visit(self,node):
+    def generic_visit(self, node):
         '''
         Method executed if no applicable visit_ method can be found.
         This examines the node to see if it has _fields, is a list,
         or can be further traversed.
         '''
-        for field in getattr(node,"_fields"):
-            value = getattr(node,field,None)
+        for field in getattr(node, "_fields"):
+            value = getattr(node, field, None)
             if isinstance(value, list):
                 for item in value:
-                    if isinstance(item,AST):
+                    if isinstance(item, AST):
                         self.visit(item)
             elif isinstance(value, AST):
                 self.visit(value)
+
 
 # DO NOT MODIFY
 class NodeTransformer(NodeVisitor):
@@ -244,26 +268,27 @@ class NodeTransformer(NodeVisitor):
     to the parse tree.  For example, certain compiler optimizations or
     rewriting steps prior to code generation.
     '''
-    def generic_visit(self,node):
-        for field in getattr(node,"_fields"):
-            value = getattr(node,field,None)
-            if isinstance(value,list):
+    def generic_visit(self, node):
+        for field in getattr(node, "_fields"):
+            value = getattr(node, field, None)
+            if isinstance(value, list):
                 newvalues = []
                 for item in value:
-                    if isinstance(item,AST):
+                    if isinstance(item, AST):
                         newnode = self.visit(item)
                         if newnode is not None:
                             newvalues.append(newnode)
                     else:
                         newvalues.append(n)
                 value[:] = newvalues
-            elif isinstance(value,AST):
+            elif isinstance(value, AST):
                 newnode = self.visit(value)
                 if newnode is None:
-                    delattr(node,field)
+                    delattr(node, field)
                 else:
-                    setattr(node,field,newnode)
+                    setattr(node, field, newnode)
         return node
+
 
 # DO NOT MODIFY
 def flatten(top):
@@ -277,10 +302,11 @@ def flatten(top):
         def __init__(self):
             self.depth = 0
             self.nodes = []
-        def generic_visit(self,node):
-            self.nodes.append((self.depth,node))
+
+        def generic_visit(self, node):
+            self.nodes.append((self.depth, node))
             self.depth += 1
-            NodeVisitor.generic_visit(self,node)
+            NodeVisitor.generic_visit(self, node)
             self.depth -= 1
 
     d = Flattener()
