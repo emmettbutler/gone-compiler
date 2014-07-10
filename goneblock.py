@@ -22,8 +22,26 @@ class BlockVisitor(object):
             block = block.next_block
 
 
+class BaseLLVMBlockVisitor(object):
+    '''
+    Class for visiting basic blocks.  Define a subclass and define
+    methods such as visit_BasicBlock or visit_IfBlock to implement
+    custom processing (similar to ASTs).
+    '''
+    def __init__(self):
+        self.visited_blocks = set()
+
+    def visit(self, block):
+        while isinstance(block, Block):
+            name = "visit_%s" % type(block).__name__
+            if hasattr(self, name) and block not in self.visited_blocks:
+                getattr(self, name)(block)
+                self.visited_blocks |= {block}
+            block = block.next_block
+
+
 class EmitBlocksVisitor(BlockVisitor):
-    def visit_BasicBlock(self,block):
+    def visit_BasicBlock(self, block):
         print("Block:[%s]" % block)
         for inst in block.instructions:
             print("    %s" % (inst,))
@@ -52,7 +70,7 @@ class EmitBlocksVisitor(BlockVisitor):
 class Block(object):
     def __init__(self):
         self.instructions = []   # Instructions in the block
-        self.next_block =None    # Link to the next block
+        self.next_block = None    # Link to the next block
 
     def append(self,instr):
         self.instructions.append(instr)
@@ -74,8 +92,9 @@ class ConditionalBlock(Block):
     Class for a basic-block representing an if-else.  There are
     two branches to handle each possibility.
     '''
-    def __init__(self):
+    def __init__(self, testvar=None):
         super(ConditionalBlock,self).__init__()
+        self.testvar = testvar
         self.true_branch = None
         self.false_branch = None
 

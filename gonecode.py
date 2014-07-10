@@ -212,6 +212,7 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = cond_block
 
         self.visit(node.expr)
+        cond_block.testvar = node.expr.gen_location
 
         self.current_block = BasicBlock()
         cond_block.true_branch = self.current_block
@@ -233,6 +234,7 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = cond_block
 
         self.visit(node.expr)
+        cond_block.testvar = node.expr.gen_location
 
         self.current_block = BasicBlock()
         cond_block.loop_branch = self.current_block

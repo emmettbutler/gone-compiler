@@ -22,7 +22,7 @@ from llvm.core import (
     FCMP_UEQ, FCMP_UGE, FCMP_UGT, FCMP_ULE, FCMP_ULT, FCMP_UNE,
     ICMP_EQ, ICMP_NE, ICMP_SGE, ICMP_SGT, ICMP_SLE, ICMP_SLT
 )
-from goneblock import EmitBlocksVisitor
+from goneblock import BaseLLVMBlockVisitor, Block
 
 # Declare the LLVM type objects that you want to use for the types
 # in our intermediate code.  Basically, you're going to need to
@@ -50,8 +50,9 @@ typemap = {
 # in the class.
 
 
-class GenerateLLVMBlockVisitor(EmitBlocksVisitor):
+class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
     def __init__(self):
+        super(GenerateLLVMBlockVisitor, self).__init__()
         self.inner_block_visitor = None
         self.vars = {}
         self.temps = {}
@@ -59,8 +60,9 @@ class GenerateLLVMBlockVisitor(EmitBlocksVisitor):
         self.function = Function.new(self.module,
                                      Type.function(Type.void(), [], False),
                                      "main")
-        self.block = self.function.append_basic_block('entry')
-        self.builder = Builder.new(self.block)
+        block = self.function.append_basic_block('entry')
+        self.start_block = block
+        self.builder = Builder.new(block)
         self.declare_runtime_library()
 
     def declare_runtime_library(self):
@@ -76,28 +78,54 @@ class GenerateLLVMBlockVisitor(EmitBlocksVisitor):
                                                    Type.function(Type.void(), [bool_type], False),
                                                    "_print_bool")
 
-    def visit_BasicBlock(self, block):
-        self.inner_block_visitor.generate_code(block.instructions)
+    def visit(self, block):
+        while isinstance(block, Block):
+            name = "visit_%s" % type(block).__name__
+            if hasattr(self, name) and block not in self.visited_blocks:
+                getattr(self, name)(block)
+                self.visited_blocks |= {block}
+            block = block.next_block
+
+    def visit_BasicBlock(self, block, pred=None):
+        self.inner_block_visitor.generate_code(block)
 
     def visit_ConditionalBlock(self, block):
         self.visit_BasicBlock(block)
-        # Emit a conditional jump around the if-branch
-        inst = ('JUMP_IF_FALSE',
-                block.false_branch if block.false_branch else block.next_block)
-        print("    %s" % (inst,))
+
+        then_block = self.inner_block_visitor.add_block("then")
+        else_block = self.inner_block_visitor.add_block("else")
+        merge_block = self.inner_block_visitor.add_block("merge")
+
+        self.inner_block_visitor.cbranch(block.testvar, then_block, else_block)
+
+        self.inner_block_visitor.set_block(then_block)
         self.visit(block.true_branch)
-        if block.false_branch:
-            # Emit a jump around the else-branch (if there is one)
-            inst = ('JUMP', block.next_block)
-            print("    %s" % (inst,))
-            self.visit(block.false_branch)
+        self.inner_block_visitor.branch(merge_block)
+
+        self.inner_block_visitor.set_block(else_block)
+        self.visit(block.false_branch)
+        self.inner_block_visitor.branch(merge_block)
+
+        self.inner_block_visitor.set_block(merge_block)
 
     def visit_WhileBlock(self, block):
-        self.visit_BasicBlock(block)
-        # Emit a conditional jump around the if-branch
-        inst = ('JUMP_IF_FALSE', block.next_block)
-        print("    %s" % (inst,))
+        test_block = self.inner_block_visitor.add_block("whiletest")
+
+        self.inner_block_visitor.branch(test_block)
+        self.inner_block_visitor.set_block(test_block)
+
+        self.inner_block_visitor.generate_code(block)
+
+        loop_block = self.inner_block_visitor.add_block("loop")
+        after_loop = self.inner_block_visitor.add_block("afterloop")
+
+        self.inner_block_visitor.cbranch(block.testvar, loop_block, after_loop)
+
+        self.inner_block_visitor.set_block(loop_block)
         self.visit(block.loop_branch)
+        self.inner_block_visitor.branch(test_block)
+
+        self.inner_block_visitor.set_block(after_loop)
 
     def return_void(self):
         self.builder.ret_void()
@@ -109,26 +137,42 @@ class GenerateLLVM(object):
 
     @property
     def vars(self):
-        return self.blockvisitor.vars;
+        return self.blockvisitor.vars
 
     @property
     def temps(self):
-        return self.blockvisitor.temps;
+        return self.blockvisitor.temps
 
     @property
     def builder(self):
-        return self.blockvisitor.builder;
+        return self.blockvisitor.builder
 
     @property
     def module(self):
-        return self.blockvisitor.module;
+        return self.blockvisitor.module
 
     @property
     def runtime(self):
-        return self.blockvisitor.runtime;
+        return self.blockvisitor.runtime
 
-    def generate_code(self, ircode):
-        for op in ircode:
+    @property
+    def function(self):
+        return self.blockvisitor.function
+
+    def set_block(self, block):
+        self.builder.position_at_end(block)
+
+    def add_block(self, name):
+        return self.function.append_basic_block(name)
+
+    def cbranch(self, testvar, true_block, false_block):
+        self.builder.cbranch(self.temps[testvar], true_block, false_block)
+
+    def branch(self, next_block):
+        self.builder.branch(next_block)
+
+    def generate_code(self, block):
+        for op in block.instructions:
             opcode = op[0]
             if hasattr(self, "emit_" + opcode):
                 getattr(self, "emit_" + opcode)(*op[1:])
@@ -331,13 +375,12 @@ def main():
         if not errors_reported():
             code = gonecode.generate_code(program)
             # Emit the code sequence
-            EmitBlocksVisitor().visit(code.start_block)
             g = GenerateLLVMBlockVisitor()
             inner_block_visitor = GenerateLLVM(blockvisitor=g)
             g.inner_block_visitor = inner_block_visitor
             g.visit(code.start_block)
             g.return_void()
-            print(g.module)
+            #print(g.module)
 
             # Verify and run function that was created during code generation
             print(":::: RUNNING ::::")
