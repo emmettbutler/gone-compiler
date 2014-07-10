@@ -323,6 +323,7 @@ def main():
     import gonecode
     import sys
     import ctypes
+    import time
     from errors import subscribe_errors, errors_reported
     from llvm.ee import ExecutionEngine
 
@@ -347,7 +348,10 @@ def main():
             print(":::: RUNNING ::::")
             g.function.verify()
             llvm_executor = ExecutionEngine.new(g.module)
+            start = time.clock()
             llvm_executor.run_function(g.function, [])
+            print(":::: FINISHED ::::")
+            print("execution time: {0:.15f}s".format(time.clock() - start))
 
 if __name__ == '__main__':
     main()

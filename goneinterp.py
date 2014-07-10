@@ -167,6 +167,7 @@ def main():
     import gonecheck
     import gonecode
     import sys
+    import time
     from errors import subscribe_errors, errors_reported
 
     lexer = gonelex.make_lexer()
@@ -179,7 +180,10 @@ def main():
         if not errors_reported():
             code = gonecode.generate_code(program)
             interpreter = Interpreter()
+            start = time.clock()
             interpreter.run(code.code)
+            print(":::: FINISHED ::::")
+            print("execution time: {0:.15f}s".format(time.clock() - start))
 
 if __name__ == '__main__':
     main()
