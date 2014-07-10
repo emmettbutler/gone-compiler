@@ -1,4 +1,4 @@
-var n int = 10;
+var n int = 100000;
 while n > 0 {
     print 69;
     n = n - 1;
