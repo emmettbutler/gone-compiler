@@ -166,8 +166,7 @@ precedence = (
 
 def p_program(p):
     '''
-    program : statements
-            | empty
+    program : block
     '''
     p[0] = Program(p[1], lineno=p.lineno(1))
 
@@ -176,6 +175,14 @@ def p_empty(p):
     '''
     empty :
     '''
+
+
+def p_block(p):
+    '''
+    block : statements
+          | empty
+    '''
+    p[0] = p[1]
 
 
 def p_statements(p):
@@ -193,13 +200,6 @@ def p_statements_first(p):
     p[0] = Statements([p[1]], lineno=p.lineno(1))
 
 
-def p_statements_empty(p):
-    '''
-    statements :  empty
-    '''
-    p[0] = Statements([], lineno=p.lineno(1))
-
-
 def p_statement(p):
     '''
     statement : print_statement
@@ -215,21 +215,21 @@ def p_statement(p):
 
 def p_conditional_statement(p):
     '''
-    conditional_statement : IF expression LBRACE statements RBRACE
+    conditional_statement : IF expression LBRACE block RBRACE
     '''
     p[0] = ConditionalStatement(p[2], p[4], None, lineno=p.lineno(1))
 
 
 def p_conditional_statement_else(p):
     '''
-    conditional_statement : IF expression LBRACE statements RBRACE ELSE LBRACE statements RBRACE
+    conditional_statement : IF expression LBRACE block RBRACE ELSE LBRACE block RBRACE
     '''
     p[0] = ConditionalStatement(p[2], p[4], p[8], lineno=p.lineno(1))
 
 
 def p_while_statement(p):
     '''
-    while_statement : WHILE expression LBRACE statements RBRACE
+    while_statement : WHILE expression LBRACE block RBRACE
     '''
     p[0] = WhileStatement(p[2], p[4], lineno=p.lineno(1))
 
@@ -385,7 +385,6 @@ def p_expression_parenlist(p):
 def p_exprlist(p):
     '''
     exprlist : exprlist COMMA expression
-             | exprlist COMMA comparison_binop
     '''
     p[0] = p[1]
     p[0].expressions.append(p[3])
@@ -394,7 +393,6 @@ def p_exprlist(p):
 def p_exprlist_first(p):
     '''
     exprlist : expression
-             | comparison_binop
     '''
     p[0] = ExpressionList([p[1]], lineno=p.lineno(1))
 
