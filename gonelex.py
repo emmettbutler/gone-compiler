@@ -119,7 +119,9 @@ tokens = [
     # Literals
     'INTEGER', 'FLOAT', 'STRING', 'BOOL',
 
-    'LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ', 'AND', 'OR', 'NOT'
+    'LT', 'GT', 'LTE', 'GTE', 'EQ', 'NEQ', 'AND', 'OR', 'NOT',
+
+    'IF', 'ELSE', 'WHILE', 'LBRACE', 'RBRACE'
 ]
 
 # ----------------------------------------------------------------------
@@ -153,6 +155,11 @@ t_NEQ       = r'!='
 t_AND       = r'&&'
 t_OR        = r'\|\|'
 t_NOT       = r'!'
+t_IF        = r'if'
+t_ELSE      = r'else'
+t_WHILE     = r'while'
+t_LBRACE    = r'\{'
+t_RBRACE    = r'\}'
 
 # ----------------------------------------------------------------------
 # *** YOU MUST COMPLETE : write the regexs and additional code below ***
@@ -234,7 +241,10 @@ def t_ID(t):
         'func': 'FUNC',
         'extern': 'EXTERN',
         'true': 'BOOL',
-        'false': 'BOOL'
+        'false': 'BOOL',
+        'if': 'IF',
+        'else': 'ELSE',
+        'while': 'WHILE'
     }
 
     # *** YOU MUST IMPLEMENT ***
