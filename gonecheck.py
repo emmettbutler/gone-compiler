@@ -286,8 +286,7 @@ class CheckProgramVisitor(NodeVisitor):
                     self.error(node.lineno, "function '{}' accepts {} arguments, {} given"
                         .format(node.name, len(symbol.argtypes),
                                 len(node.exprlist.expressions)))
-                for idx, expression in enumerate(node.exprlist.expressions):
-                    expected_type = symbol.argtypes[idx]
+                for idx, (expression, expected_type) in enumerate(zip(node.exprlist.expressions, symbol.argtypes)):
                     if expression.type_obj != expected_type:
                         self.error(node.lineno, "argument {} to function '{}' is {}, {} expected"
                             .format(idx, node.name, expression.type_obj.name,
