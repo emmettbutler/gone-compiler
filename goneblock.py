@@ -33,12 +33,14 @@ class Block(object):
     def __iter__(self):
         return iter(self.instructions)
 
+
 class BasicBlock(Block):
     '''
     Class for a simple basic block.  Control flow unconditionally
     flows to the next block.
     '''
     pass
+
 
 class ConditionalBlock(Block):
     '''
@@ -50,3 +52,8 @@ class ConditionalBlock(Block):
         self.true_branch = None
         self.false_branch = None
 
+
+class WhileBlock(Block):
+    def __init__(self):
+        super(WhileBlock, self).__init__()
+        self.loop_branch = None

@@ -163,7 +163,7 @@ To start, your SSA code should only contain the following operators:
 '''
 
 import goneast
-from goneblock import BasicBlock, ConditionalBlock, BlockVisitor
+from goneblock import BasicBlock, ConditionalBlock, BlockVisitor, WhileBlock
 from collections import defaultdict
 
 # STEP 1: Map map operator symbol names such as +, -, *, /
@@ -391,6 +391,21 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = BasicBlock()
         cond_block.next_block = self.current_block
 
+    def visit_WhileStatement(self, node):
+        cond_block = WhileBlock()
+        self.current_block.next_block = cond_block
+        self.current_block = cond_block
+
+        self.visit(node.expr)
+
+        self.current_block = BasicBlock()
+        cond_block.loop_branch = self.current_block
+
+        self.visit(node.statements)
+
+        self.current_block = BasicBlock()
+        cond_block.next_block = self.current_block
+
 
 class EmitBlocks(BlockVisitor):
     def visit_BasicBlock(self,block):
@@ -410,6 +425,13 @@ class EmitBlocks(BlockVisitor):
             inst = ('JUMP', block.next_block)
             print("    %s" % (inst,))
             self.visit(block.false_branch)
+
+    def visit_WhileBlock(self, block):
+        self.visit_BasicBlock(block)
+        # Emit a conditional jump around the if-branch
+        inst = ('JUMP_IF_FALSE', block.next_block)
+        print("    %s" % (inst,))
+        self.visit(block.loop_branch)
 
 # STEP 3: Testing
 #
