@@ -22,6 +22,7 @@ from llvm.core import (
     FCMP_UEQ, FCMP_UGE, FCMP_UGT, FCMP_ULE, FCMP_ULT, FCMP_UNE,
     ICMP_EQ, ICMP_NE, ICMP_SGE, ICMP_SGT, ICMP_SLE, ICMP_SLT
 )
+from goneblock import EmitBlocksVisitor
 
 # Declare the LLVM type objects that you want to use for the types
 # in our intermediate code.  Basically, you're going to need to
@@ -49,96 +50,90 @@ typemap = {
 # in the class.
 
 
-class GenerateLLVM(object):
-    def __init__(self, name="module"):
-        # Perform the basic LLVM initialization.  You need the following parts:
-        #
-        #    1.  A top-level Module object
-        #    2.  A Function instance in which to insert code
-        #    3.  A Builder instance to generate instructions
-        #
-        # Note: at this point in the project, we don't have any user-defined
-        # functions so we're just going to emit all LLVM code into a top
-        # level function void main() { ... }.   This will get changed later.
-
-        self.module = Module.new(name)
+class GenerateLLVMBlockVisitor(EmitBlocksVisitor):
+    def __init__(self):
+        self.inner_block_visitor = None
+        self.vars = {}
+        self.temps = {}
+        self.module = Module.new("module")
         self.function = Function.new(self.module,
                                      Type.function(Type.void(), [], False),
                                      "main")
         self.block = self.function.append_basic_block('entry')
         self.builder = Builder.new(self.block)
-
-        # Dictionary that holds all of the global variable/function declarations.
-        # Any declaration in the Gone source code is going to get an entry here
-        self.vars = {}
-
-        # Dictionary that holds all of the temporary variables created in
-        # the intermediate code.   For example, if you had an expression
-        # like this:
-        #
-        #      a = b + c*d
-        #
-        # The corresponding intermediate code might look like this:
-        #
-        #      ('load_int', 'b', 'int_1')
-        #      ('load_int', 'c', 'int_2')
-        #      ('load_int', 'd', 'int_3')
-        #      ('mul_int', 'int_2','int_3','int_4')
-        #      ('add_int', 'int_1','int_4','int_5')
-        #      ('store_int', 'int_5', 'a')
-        #
-        # The self.temp dictionary below is used to map names such as 'int_1',
-        # 'int_2' to their corresponding LLVM values.  Essentially, every time
-        # you make anything in LLVM, it gets stored here.
-        self.temps = {}
-
-        # Initialize the runtime library functions (see below)
         self.declare_runtime_library()
 
     def declare_runtime_library(self):
-        # Certain functions such as I/O and string handling are often easier
-        # to implement in an external C library.  This method should make
-        # the LLVM declarations for any runtime functions to be used
-        # during code generation.    Please note that runtime function
-        # functions are implemented in C in a separate file gonert.c
-
         self.runtime = {}
 
-        # Declare printing functions
         self.runtime['_print_int'] = Function.new(self.module,
                                                   Type.function(Type.void(), [int_type], False),
                                                   "_print_int")
-
         self.runtime['_print_float'] = Function.new(self.module,
                                                     Type.function(Type.void(), [float_type], False),
                                                     "_print_float")
-
         self.runtime['_print_bool'] = Function.new(self.module,
-                                                    Type.function(Type.void(), [bool_type], False),
-                                                    "_print_bool")
+                                                   Type.function(Type.void(), [bool_type], False),
+                                                   "_print_bool")
 
+    def visit_BasicBlock(self, block):
+        self.inner_block_visitor.generate_code(block.instructions)
+
+    def visit_ConditionalBlock(self, block):
+        self.visit_BasicBlock(block)
+        # Emit a conditional jump around the if-branch
+        inst = ('JUMP_IF_FALSE',
+                block.false_branch if block.false_branch else block.next_block)
+        print("    %s" % (inst,))
+        self.visit(block.true_branch)
+        if block.false_branch:
+            # Emit a jump around the else-branch (if there is one)
+            inst = ('JUMP', block.next_block)
+            print("    %s" % (inst,))
+            self.visit(block.false_branch)
+
+    def visit_WhileBlock(self, block):
+        self.visit_BasicBlock(block)
+        # Emit a conditional jump around the if-branch
+        inst = ('JUMP_IF_FALSE', block.next_block)
+        print("    %s" % (inst,))
+        self.visit(block.loop_branch)
+
+    def return_void(self):
+        self.builder.ret_void()
+
+
+class GenerateLLVM(object):
+    def __init__(self, blockvisitor=None):
+        self.blockvisitor = blockvisitor
+
+    @property
+    def vars(self):
+        return self.blockvisitor.vars;
+
+    @property
+    def temps(self):
+        return self.blockvisitor.temps;
+
+    @property
+    def builder(self):
+        return self.blockvisitor.builder;
+
+    @property
+    def module(self):
+        return self.blockvisitor.module;
+
+    @property
+    def runtime(self):
+        return self.blockvisitor.runtime;
 
     def generate_code(self, ircode):
-        # Given a sequence of SSA intermediate code tuples, generate LLVM
-        # instructions using the current builder (self.builder).  Each
-        # opcode tuple (opcode, args) is dispatched to a method of the
-        # form self.emit_opcode(args)
-        for op in ircode.code:
+        for op in ircode:
             opcode = op[0]
-            print(opcode)
             if hasattr(self, "emit_" + opcode):
                 getattr(self, "emit_" + opcode)(*op[1:])
             else:
                 print("Warning: No emit_" + opcode + "() method")
-
-        # Add a return statement.  Note, at this point, we don't really have
-        # user-defined functions so this is a bit of hack--it may be removed later.
-        self.builder.ret_void()
-
-    # ----------------------------------------------------------------------
-    # Opcode implementation.   You must implement the opcodes.  A few
-    # sample opcodes have been given to get you started.
-    # ----------------------------------------------------------------------
 
     # Creation of literal values.  Simply define as LLVM constants.
     def emit_literal_int(self, value, target):
@@ -336,8 +331,12 @@ def main():
         if not errors_reported():
             code = gonecode.generate_code(program)
             # Emit the code sequence
-            g = GenerateLLVM()
-            g.generate_code(code)
+            EmitBlocksVisitor().visit(code.start_block)
+            g = GenerateLLVMBlockVisitor()
+            inner_block_visitor = GenerateLLVM(blockvisitor=g)
+            g.inner_block_visitor = inner_block_visitor
+            g.visit(code.start_block)
+            g.return_void()
             print(g.module)
 
             # Verify and run function that was created during code generation

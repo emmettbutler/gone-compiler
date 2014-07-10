@@ -283,8 +283,8 @@ def main():
         gonecheck.check_program(program)
         # If no errors occurred, generate code
         if not errors_reported():
-            intermediate = generate_code(program)
-            code = EmitBlocksVisitor().visit(intermediate.start_block)
+            code = generate_code(program)
+            code = EmitBlocksVisitor().visit(code.start_block)
 
 if __name__ == '__main__':
     main()
