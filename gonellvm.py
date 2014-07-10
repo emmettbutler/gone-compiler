@@ -311,10 +311,6 @@ class GenerateLLVM(object):
             resolved_args.append(self.temps[arg])
         self.temps[target] = self.builder.call(self.vars[funcname], resolved_args)
 
-#######################################################################
-#                 DO NOT MODIFY ANYTHING BELOW HERE
-#######################################################################
-
 
 def main():
     import gonelex

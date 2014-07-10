@@ -49,7 +49,6 @@ class EmitBlocksVisitor(BlockVisitor):
         self.visit(block.loop_branch)
 
 
-
 class Block(object):
     def __init__(self):
         self.instructions = []   # Instructions in the block
