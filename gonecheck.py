@@ -144,13 +144,30 @@ class CheckProgramVisitor(NodeVisitor):
         # raise SyntaxError(errstring)
 
     def visit_Program(self, node):
-        # 1. Visit all of the statements
-        # 2. Record the associated symbol table
-        for statement in node.statements.statements:
+        self.visit(node.statements)
+
+    def visit_Statements(self, node):
+        for statement in node.statements:
             self.visit(statement)
 
     def visit_PrintStatement(self, node):
         self.visit(node.expr)
+
+    def visit_ConditionalStatement(self, node):
+        self.visit(node.expr)
+        if node.expr.type_obj != gonetype.bool_type:
+            self.error(node.lineno, "expression in conditional of type {}, bool expected"
+                .format(node.expr.type_obj.name))
+        self.visit(node.true_statements)
+        if node.false_statements is not None:
+            self.visit(node.false_statements)
+
+    def visit_WhileStatement(self, node):
+        self.visit(node.expr)
+        if node.expr.type_obj != gonetype.bool_type:
+            self.error(node.lineno, "expression in while loop of type {}, bool expected"
+                .format(node.expr.type_obj.name))
+        self.visit(node.statements)
 
     def visit_UnaryOp(self, node):
         # 1. Make sure that the operation is supported by the type
