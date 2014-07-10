@@ -163,6 +163,7 @@ To start, your SSA code should only contain the following operators:
 '''
 
 import goneast
+from goneblock import BasicBlock, ConditionalBlock, BlockVisitor
 from collections import defaultdict
 
 # STEP 1: Map map operator symbol names such as +, -, *, /
@@ -206,7 +207,8 @@ class GenerateCode(goneast.NodeVisitor):
         self.versions = defaultdict(int)
 
         # The generated code (list of tuples)
-        self.code = []
+        self.current_block = BasicBlock()
+        self.start_block = self.current_block
 
         # A list of external declarations (and types)
         self.externs = []
@@ -226,7 +228,7 @@ class GenerateCode(goneast.NodeVisitor):
 
     # You must implement visit_Nodename methods for all of the other
     # AST nodes.  In your code, you will need to make instructions
-    # and append them to the self.code list.
+    # and append them to the self.current_block list.
     #
     # A few sample methods follow.  You may have to adjust depending
     # on the names of the AST nodes you've defined.
@@ -238,40 +240,40 @@ class GenerateCode(goneast.NodeVisitor):
 
     def visit_VarDeclarationAssignment(self, node):
         inst = ('alloc_' + node.type_obj.name, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         self.visit(node.expr)
 
         inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
     def visit_VarDeclaration(self, node):
         inst = ('alloc_' + node.type_obj.name, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         target = self.new_temp(node.type_obj)
 
         # make a default value for declarations without definitions
         inst = ('literal_' + node.type_obj.name, node.type_obj.default, target)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         inst = ('store_' + node.type_obj.name, target, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
     def visit_ConstDeclaration(self, node):
         inst = ('alloc_' + node.type_obj.name, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         self.visit(node.expr)
 
         inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
     def visit_AssignmentStatement(self, node):
         self.visit(node.expr)
 
         inst = ('store_' + node.expr.type_obj.name, node.expr.gen_location, node.name)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
     def visit_ExternDeclaration(self, node):
         self.visit(node.prototype)
@@ -280,7 +282,7 @@ class GenerateCode(goneast.NodeVisitor):
         inst.append(node.prototype.typename)
         for arg in node.prototype.argtypes:
             inst.append(arg.name)
-        self.code.append(tuple(inst))
+        self.current_block.append(tuple(inst))
 
     def visit_FunctionPrototype(self, node):
         self.visit(node.params)
@@ -294,7 +296,7 @@ class GenerateCode(goneast.NodeVisitor):
 
         # Make the SSA opcode and append to list of generated instructions
         inst = ('literal_' + node.type_obj.name, node.value, target)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         # Save the name of the temporary variable where the value was placed
         node.gen_location = target
@@ -303,7 +305,7 @@ class GenerateCode(goneast.NodeVisitor):
         target = self.new_temp(node.type_obj)
 
         inst = ('load_' + node.type_obj.name, node.name, target)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         node.gen_location = target
 
@@ -314,7 +316,7 @@ class GenerateCode(goneast.NodeVisitor):
 
         opcode = unary_ops[node.operator] + "_" + node.expr.type_obj.name
         inst = (opcode, node.expr.gen_location, target)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
         node.gen_location = target
 
@@ -324,33 +326,23 @@ class GenerateCode(goneast.NodeVisitor):
     def visit_BooleanUnaryOp(self, node):
         self._visit_UnaryOp_helper(node)
 
-    def visit_BinOp(self, node):
-        # Visit the left and right expressions
+    def _visit_BinOp_helper(self, node):
         self.visit(node.left)
         self.visit(node.right)
 
-        # Make a new temporary for storing the result
         target = self.new_temp(node.type_obj)
 
-        # Create the opcode and append to list
         opcode = binary_ops[node.operator] + "_" + node.left.type_obj.name
         inst = (opcode, node.left.gen_location, node.right.gen_location, target)
-        self.code.append(inst)
+        self.current_block.append(inst)
 
-        # Store location of the result on the node
         node.gen_location = target
+
+    def visit_BinOp(self, node):
+        self._visit_BinOp_helper(node)
 
     def visit_ComparisonBinOp(self, node):
-        self.visit(node.left)
-        self.visit(node.right)
-
-        target = self.new_temp(node.type_obj)
-
-        opcode = binary_ops[node.operator] + "_" + node.left.type_obj.name
-        inst = (opcode, node.left.gen_location, node.right.gen_location, target)
-        self.code.append(inst)
-
-        node.gen_location = target
+        self._visit_BinOp_helper(node)
 
     def visit_NamedExpressionList(self, node):
         self.visit(node.exprlist)
@@ -361,7 +353,7 @@ class GenerateCode(goneast.NodeVisitor):
         inst.append(target)
         for arg in node.exprlist.expressions:
             inst.append(arg.gen_location)
-        self.code.append(tuple(inst))
+        self.current_block.append(tuple(inst))
 
         node.gen_location = target
 
@@ -376,7 +368,48 @@ class GenerateCode(goneast.NodeVisitor):
 
         # Create the opcode and append to list
         inst = ('print_' + node.expr.type_obj.name, node.expr.gen_location)
-        self.code.append(inst)
+        self.current_block.append(inst)
+
+    def visit_ConditionalStatement(self, node):
+        cond_block = ConditionalBlock()
+        self.current_block.next_block = cond_block
+        self.current_block = cond_block
+
+        self.visit(node.expr)
+
+        self.current_block = BasicBlock()
+        cond_block.true_branch = self.current_block
+
+        self.visit(node.true_statements)
+
+        if node.false_statements is not None:
+            self.current_block = BasicBlock()
+            cond_block.false_branch = self.current_block
+
+            self.visit(node.false_statements)
+
+        self.current_block = BasicBlock()
+        cond_block.next_block = self.current_block
+
+
+class EmitBlocks(BlockVisitor):
+    def visit_BasicBlock(self,block):
+        print("Block:[%s]" % block)
+        for inst in block.instructions:
+            print("    %s" % (inst,))
+
+    def visit_ConditionalBlock(self, block):
+        self.visit_BasicBlock(block)
+        # Emit a conditional jump around the if-branch
+        inst = ('JUMP_IF_FALSE',
+                block.false_branch if block.false_branch else block.next_block)
+        print("    %s" % (inst,))
+        self.visit(block.true_branch)
+        if block.false_branch:
+            # Emit a jump around the else-branch (if there is one)
+            inst = ('JUMP', block.next_block)
+            print("    %s" % (inst,))
+            self.visit(block.false_branch)
 
 # STEP 3: Testing
 #
@@ -418,10 +451,8 @@ def main():
         gonecheck.check_program(program)
         # If no errors occurred, generate code
         if not errors_reported():
-            code = generate_code(program)
-            # Emit the code sequence
-            for inst in code.code:
-                print(inst)
+            intermediate = generate_code(program)
+            code = EmitBlocks().visit(intermediate.start_block)
 
 if __name__ == '__main__':
     main()
