@@ -162,6 +162,12 @@ class Literal(AST):
     '''
     _fields = ['value']
 
+class WhileStatement(AST):
+    _fields = ['expr', 'statements']
+
+class ConditionalStatement(AST):
+    _fields = ['expr', 'statements']
+
 # You need to add more nodes here.  Suggested nodes include
 # BinaryOperator, UnaryOperator, ConstDeclaration, VarDeclaration,
 # AssignmentStatement, etc...
