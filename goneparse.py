@@ -287,7 +287,7 @@ def p_expression_literal(p):
 
 def p_boolean_uop(p):
     '''
-    boolean_uop : NOT expression
+    boolean_uop : NOT expression %prec UNARY
     '''
     p[0] = BooleanUnaryOp(p[1], p[2], lineno=p.lineno(1))
 
@@ -334,7 +334,6 @@ def p_expression_unary(p):
     '''
     expression : PLUS expression %prec UNARY
                | MINUS expression %prec UNARY
-               | NOT expression %prec UNARY
     '''
     p[0] = UnaryOp(p[1], p[2], lineno=p.lineno(1))
 

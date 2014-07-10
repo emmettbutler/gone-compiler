@@ -31,7 +31,8 @@ class AST(object):
 
     def __repr__(self):
         attrs = [(a, str(getattr(self, a))) for a in self.__dir__()
-                 if not a.startswith('_') and a != 'lineno' and not isinstance(getattr(self, a), AST)]
+                 if not a.startswith('_') and a != 'lineno' and not isinstance(getattr(self, a), AST)
+                 and not isinstance(getattr(self, a), list) and getattr(self, a) is not None]
         return "{}: {}".format(self.__class__.__name__, ", ".join(["{}: {}".format(a[0], a[1]) for a in attrs]))
 
 # ----------------------------------------------------------------------
