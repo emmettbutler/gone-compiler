@@ -22,6 +22,34 @@ class BlockVisitor(object):
             block = block.next_block
 
 
+class EmitBlocksVisitor(BlockVisitor):
+    def visit_BasicBlock(self,block):
+        print("Block:[%s]" % block)
+        for inst in block.instructions:
+            print("    %s" % (inst,))
+
+    def visit_ConditionalBlock(self, block):
+        self.visit_BasicBlock(block)
+        # Emit a conditional jump around the if-branch
+        inst = ('JUMP_IF_FALSE',
+                block.false_branch if block.false_branch else block.next_block)
+        print("    %s" % (inst,))
+        self.visit(block.true_branch)
+        if block.false_branch:
+            # Emit a jump around the else-branch (if there is one)
+            inst = ('JUMP', block.next_block)
+            print("    %s" % (inst,))
+            self.visit(block.false_branch)
+
+    def visit_WhileBlock(self, block):
+        self.visit_BasicBlock(block)
+        # Emit a conditional jump around the if-branch
+        inst = ('JUMP_IF_FALSE', block.next_block)
+        print("    %s" % (inst,))
+        self.visit(block.loop_branch)
+
+
+
 class Block(object):
     def __init__(self):
         self.instructions = []   # Instructions in the block

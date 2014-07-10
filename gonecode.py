@@ -163,7 +163,7 @@ To start, your SSA code should only contain the following operators:
 '''
 
 import goneast
-from goneblock import BasicBlock, ConditionalBlock, BlockVisitor, WhileBlock
+from goneblock import BasicBlock, ConditionalBlock, BlockVisitor, WhileBlock, EmitBlocksVisitor
 from collections import defaultdict
 
 # STEP 1: Map map operator symbol names such as +, -, *, /
@@ -407,32 +407,6 @@ class GenerateCode(goneast.NodeVisitor):
         cond_block.next_block = self.current_block
 
 
-class EmitBlocks(BlockVisitor):
-    def visit_BasicBlock(self,block):
-        print("Block:[%s]" % block)
-        for inst in block.instructions:
-            print("    %s" % (inst,))
-
-    def visit_ConditionalBlock(self, block):
-        self.visit_BasicBlock(block)
-        # Emit a conditional jump around the if-branch
-        inst = ('JUMP_IF_FALSE',
-                block.false_branch if block.false_branch else block.next_block)
-        print("    %s" % (inst,))
-        self.visit(block.true_branch)
-        if block.false_branch:
-            # Emit a jump around the else-branch (if there is one)
-            inst = ('JUMP', block.next_block)
-            print("    %s" % (inst,))
-            self.visit(block.false_branch)
-
-    def visit_WhileBlock(self, block):
-        self.visit_BasicBlock(block)
-        # Emit a conditional jump around the if-branch
-        inst = ('JUMP_IF_FALSE', block.next_block)
-        print("    %s" % (inst,))
-        self.visit(block.loop_branch)
-
 # STEP 3: Testing
 #
 # Try running this program on the input file Project4/Tests/good.g and viewing
@@ -474,7 +448,7 @@ def main():
         # If no errors occurred, generate code
         if not errors_reported():
             intermediate = generate_code(program)
-            code = EmitBlocks().visit(intermediate.start_block)
+            code = EmitBlocksVisitor().visit(intermediate.start_block)
 
 if __name__ == '__main__':
     main()
