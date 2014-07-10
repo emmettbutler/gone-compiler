@@ -5,15 +5,19 @@ This is a compiler for a tiny programming language called "Gone", implemented
 using python, PLY, and llvmpy. "Gone" is a small subset of Go with support for
 basic imperative programming language features.
 
+This compiler was developed under the supervision of David Beazley (@dabeaz)
+during a week-long course in July 2014.
+
 Use
 ---
 
-    python goner.py tests/llvm/good.g
+    python goner.py tests/control/fib.g
 
 Files
 -----
 
 * `goneast.py`: models of AST nodes representing pieces of a Gone program
+* `goneblock.py`: models of blocks used during code generation
 * `gonecheck.py`: an AST visitor that performs type-checking on a Gone AST
 * `gonecode.py`: an AST visitor that generates intermediate SSA code from a Gone AST
 * `goneinterp.py`: an interpreter for Gone SSA instructions

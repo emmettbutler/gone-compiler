@@ -1,16 +1,3 @@
-# goneast.py
-'''
-Abstract Syntax Tree (AST) objects.
-
-This file defines classes for different kinds of nodes of an Abstract
-Syntax Tree.  During parsing, you will create these nodes and connect
-them together.  In general, you will have a different AST node for
-each kind of grammar rule.  A few sample AST nodes can be found at the
-top of this file.  You will need to add more on your own.
-'''
-
-
-# DO NOT MODIFY
 class AST(object):
     '''
     Base class for all of the AST nodes.  Each node is expected to
@@ -34,20 +21,6 @@ class AST(object):
                  if not a.startswith('_') and a != 'lineno' and not isinstance(getattr(self, a), AST)
                  and not isinstance(getattr(self, a), list) and getattr(self, a) is not None]
         return "{}: {}".format(self.__class__.__name__, ", ".join(["{}: {}".format(a[0], a[1]) for a in attrs]))
-
-# ----------------------------------------------------------------------
-# Specific AST nodes.
-#
-# For each node, you need to define a class and add the appropriate _fields = []
-# specification that indicates what fields are to be stored.  Just as
-# an example, for a binary operator, you might store the operator, the
-# left expression, and the right expression like this:
-#
-#    class Binop(AST):
-#        _fields = ['op','left','right']
-# ----------------------------------------------------------------------
-
-# A few sample nodes
 
 
 class Program(AST):
@@ -194,41 +167,8 @@ class WhileStatement(AST):
 class ConditionalStatement(AST):
     _fields = ['expr', 'true_statements', 'false_statements']
 
-# You need to add more nodes here.  Suggested nodes include
-# BinaryOperator, UnaryOperator, ConstDeclaration, VarDeclaration,
-# AssignmentStatement, etc...
 
-# ----------------------------------------------------------------------
-#                  DO NOT MODIFY ANYTHING BELOW HERE
-# ----------------------------------------------------------------------
-
-# The following classes for visiting and rewriting the AST are taken
-# from Python's ast module.
-
-
-# DO NOT MODIFY
 class NodeVisitor(object):
-    '''
-    Class for visiting nodes of the parse tree.  This is modeled after
-    a similar class in the standard library ast.NodeVisitor.  For each
-    node, the visit(node) method calls a method visit_NodeName(node)
-    which should be implemented in subclasses.  The generic_visit() method
-    is called for all nodes where there is no matching visit_NodeName() method.
-
-    Here is a example of a visitor that examines binary operators:
-
-        class VisitOps(NodeVisitor):
-            visit_Binop(self,node):
-                print("Binary operator", node.op)
-                self.visit(node.left)
-                self.visit(node.right)
-            visit_Unaryop(self,node):
-                print("Unary operator", node.op)
-                self.visit(node.expr)
-
-        tree = parse(txt)
-        VisitOps().visit(tree)
-    '''
     def visit(self, node):
         '''
         Execute a method of the form visit_NodeName(node) where
@@ -257,7 +197,6 @@ class NodeVisitor(object):
                 self.visit(value)
 
 
-# DO NOT MODIFY
 class NodeTransformer(NodeVisitor):
     '''
     Class that allows nodes of the parse tree to be replaced/rewritten.

@@ -2,10 +2,6 @@ import goneast
 from goneblock import BasicBlock, ConditionalBlock, WhileBlock, EmitBlocksVisitor
 from collections import defaultdict
 
-# STEP 1: Map map operator symbol names such as +, -, *, /
-# to actual opcode names 'add','sub','mul','div' to be emitted in
-# the SSA code.   This is easy to do using dictionaries:
-
 binary_ops = {
     '+': 'add',
     '-': 'sub',
@@ -26,11 +22,6 @@ unary_ops = {
     '-': 'usub',
     '!': 'not'
 }
-
-# STEP 2: Implement the following Node Visitor class so that it creates
-# a sequence of SSA instructions in the form of tuples.  Use the
-# above description of the allowed op-codes as a guide.
-
 
 class GenerateCode(goneast.NodeVisitor):
     '''
@@ -61,13 +52,6 @@ class GenerateCode(goneast.NodeVisitor):
         name = "__%s_%d" % (typeobj.name, self.versions[typeobj.name])
         self.versions[typeobj.name] += 1
         return name
-
-    # You must implement visit_Nodename methods for all of the other
-    # AST nodes.  In your code, you will need to make instructions
-    # and append them to the self.current_block list.
-    #
-    # A few sample methods follow.  You may have to adjust depending
-    # on the names of the AST nodes you've defined.
 
     def visit_Program(self, node):
         for statement in node.statements.statements:
@@ -243,23 +227,6 @@ class GenerateCode(goneast.NodeVisitor):
 
         self.current_block = BasicBlock()
         cond_block.next_block = self.current_block
-
-
-# STEP 3: Testing
-#
-# Try running this program on the input file Project4/Tests/good.g and viewing
-# the resulting SSA code sequence.
-#
-#     bash % python gonecode.py good.g
-#     ... look at the output ...
-#
-# Sample output can be found in Project4/Tests/good.out.  While coding,
-# you may want to break the code down into more manageable chunks.
-# Think about unit testing.
-
-# ----------------------------------------------------------------------
-#                       DO NOT MODIFY ANYTHING BELOW
-# ----------------------------------------------------------------------
 
 
 def generate_code(node):

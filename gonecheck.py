@@ -83,8 +83,6 @@ class CheckProgramVisitor(NodeVisitor):
         self.visit(node.statements)
 
     def visit_UnaryOp(self, node):
-        # 1. Make sure that the operation is supported by the type
-        # 2. Set the result type to the same as the operand
         self.visit(node.expr)
         if node.operator not in node.expr.type_obj.un_ops:
             self.error(node.lineno, "{} does not support unary {}"
@@ -107,9 +105,6 @@ class CheckProgramVisitor(NodeVisitor):
                     .format(node.right.type_obj.name, node.operator))
 
     def visit_BinOp(self, node):
-        # 1. Make sure left and right operands have the same type
-        # 2. Make sure the operation is supported
-        # 3. Assign the result type
         self.visit(node.left)
         self.visit(node.right)
         self._visit_BinOp_helper(node)
@@ -127,9 +122,6 @@ class CheckProgramVisitor(NodeVisitor):
         node.type_obj = gonetype.bool_type
 
     def visit_AssignmentStatement(self, node):
-        # 1. Make sure the location of the assignment is defined
-        # 2. Check that assignment is allowed
-        # 3. Check that the types match
         self.visit(node.expr)
         symbol = self.symbol_table.get(node.name)
         if symbol is None:
@@ -145,8 +137,6 @@ class CheckProgramVisitor(NodeVisitor):
         node.type_obj = node.expr.type_obj
 
     def visit_ConstDeclaration(self, node):
-        # 1. Check that the constant name is not already defined
-        # 2. Add an entry to the symbol table
         self.visit(node.expr)
         symbol = self.symbol_table.get(node.name)
         if symbol is not None:
@@ -172,13 +162,9 @@ class CheckProgramVisitor(NodeVisitor):
         node.ctx = "var"
 
     def visit_VarDeclaration(self, node):
-        # 1. Check that the variable name is not already defined
-        # 2. Add an entry to the symbol table
-        # 4. If there is no expression, set an initial value for the value
         self._visit_VarDeclaration_helper(node)
 
     def visit_VarDeclarationAssignment(self, node):
-        # 3. Check that the type of the expression (if any) is the same
         self.visit(node.expr)
         self._visit_VarDeclaration_helper(node)
         if node.expr.type_obj != node.type_obj:
@@ -186,8 +172,6 @@ class CheckProgramVisitor(NodeVisitor):
                 .format(node.expr.type_obj.name, node.type_obj.name))
 
     def visit_Location(self, node):
-        # 1. Make sure the location is a valid variable or constant value
-        # 2. Assign the type of the location to the node
         symbol = self.symbol_table.get(node.name)
         if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undeclared identifier '{}'".format(node.name))
@@ -199,7 +183,6 @@ class CheckProgramVisitor(NodeVisitor):
             node.type_obj = symbol.type_obj
 
     def visit_Literal(self, node):
-        # Attach an appropriate type to the literal
         type_obj = self.symbol_table.type_objects.get(type(node.value), None)
         if type_obj is not None:
             node.type_obj = type_obj
@@ -254,10 +237,6 @@ class CheckProgramVisitor(NodeVisitor):
         else:
             self.error(node.lineno, "unknown type name '{}'".format(node.typename))
             node.type_obj = gonetype.error_type
-
-# ----------------------------------------------------------------------
-#                       DO NOT MODIFY ANYTHING BELOW
-# ----------------------------------------------------------------------
 
 
 def check_program(node):

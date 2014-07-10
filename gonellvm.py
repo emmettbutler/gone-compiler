@@ -1,37 +1,14 @@
-# gonellvm.py
-'''
-Project 5 : Generate LLVM
-=========================
-In this project, you're going to translate the SSA intermediate code
-into LLVM IR.    Once you're done, your code will be runnable.  It
-is strongly advised that you do *all* of the steps of Exercise 5
-prior to starting this project.   Don't rush into it.
-
-The basic idea of this project is exactly the same as the interpreter
-in Project 4.   You'll make a class that walks through the instruction
-sequence and triggers a method for each kind of instruction.  Instead
-of running the instruction however, you'll be generating LLVM
-instructions.
-
-Further instructions are contained in the comments.
-'''
-
-# LLVM imports. Don't change this.
 from llvm.core import Module, Builder, Function, Type, Constant, GlobalVariable
 from llvm.core import (
     FCMP_UEQ, FCMP_UGE, FCMP_UGT, FCMP_ULE, FCMP_ULT, FCMP_UNE,
     ICMP_EQ, ICMP_NE, ICMP_SGE, ICMP_SGT, ICMP_SLE, ICMP_SLT
 )
-from goneblock import BaseLLVMBlockVisitor, Block
-
-# Declare the LLVM type objects that you want to use for the types
-# in our intermediate code.  Basically, you're going to need to
-# declare your integer, float, and string types here.
+from goneblock import BaseLLVMBlockVisitor
 
 int_type = Type.int()         # 32-bit integer
 float_type = Type.double()      # 64-bit float
-string_type = None               # Up to you (leave until the end)
-bool_type = Type.int(1)               # Up to you (leave until the end)
+string_type = None
+bool_type = Type.int(1)
 
 # A dictionary that maps the typenames used in IR to the corresponding
 # LLVM types defined above.   This is mainly provided for convenience
@@ -42,12 +19,6 @@ typemap = {
     'string': string_type,
     'bool': bool_type
 }
-
-# The following class is going to generate the LLVM instruction stream.
-# The basic features of this class are going to mirror the experiments
-# you tried in Exercise 5.  The execution module is very similar
-# to the interpreter written in Project 4.  See specific comments
-# in the class.
 
 
 class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
@@ -77,14 +48,6 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
         self.runtime['_print_bool'] = Function.new(self.module,
                                                    Type.function(Type.void(), [bool_type], False),
                                                    "_print_bool")
-
-    def visit(self, block):
-        while isinstance(block, Block):
-            name = "visit_%s" % type(block).__name__
-            if hasattr(self, name) and block not in self.visited_blocks:
-                getattr(self, name)(block)
-                self.visited_blocks |= {block}
-            block = block.next_block
 
     def visit_BasicBlock(self, block, pred=None):
         self.inner_block_visitor.generate_code(block)
