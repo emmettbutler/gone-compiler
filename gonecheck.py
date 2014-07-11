@@ -164,6 +164,7 @@ class CheckProgramVisitor(NodeVisitor):
             node.type_obj = node.expr.type_obj
             self.symbol_table.add(node.name, node)
         node.ctx = "const"
+        node.scope = "global" if self.symbol_table.current_scope == self.symbol_table.root_scope else "local"
 
     def visit_ReturnStatement(self, node):
         self.visit(node.expr)
@@ -197,6 +198,7 @@ class CheckProgramVisitor(NodeVisitor):
             self._set_node_type(node)
             self.symbol_table.add(node.name, node)
         node.ctx = "var"
+        node.scope = "global" if self.symbol_table.current_scope == self.symbol_table.root_scope else "local"
 
     def visit_VarDeclaration(self, node):
         self._visit_VarDeclaration_helper(node)
@@ -271,6 +273,7 @@ class CheckProgramVisitor(NodeVisitor):
     def visit_ParameterDeclaration(self, node):
         self._set_node_type(node)
         self.symbol_table.add(node.name, node)
+        node.scope = "local"
 
     def _set_node_type(self, node, typename=None):
         typename = node.typename if hasattr(node, 'typename') else typename
