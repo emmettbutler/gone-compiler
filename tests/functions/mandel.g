@@ -51,7 +51,7 @@ func _main() int {
      }
      return 0;
 }
-print _main();
+_main();
 
 
 

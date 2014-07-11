@@ -60,6 +60,7 @@ def p_statement(p):
               | while_statement
               | return_statement
               | function_definition
+              | function_call
     '''
     p[0] = p[1]
 
@@ -238,6 +239,13 @@ def p_expression_unary(p):
                | MINUS expression %prec UNARY
     '''
     p[0] = UnaryOp(p[1], p[2], lineno=p.lineno(1))
+
+
+def p_function_call(p):
+    '''
+    function_call : ID LPAREN exprlist RPAREN SEMI
+    '''
+    p[0] = NamedExpressionList(p[1], p[3], lineno=p.lineno(4))
 
 
 def p_expression_parenlist(p):
