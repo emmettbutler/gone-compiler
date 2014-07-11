@@ -26,5 +26,8 @@ func error2(x bar) int {  //Undefined type 'bar'
 }
 
 func error3(x int) bar { // Undefined return type 'bar'
+    var q int = 4;
     return 0;
 }
+
+print q;  // undefined identifer (out of scope)

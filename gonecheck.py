@@ -2,6 +2,8 @@ from errors import error as _error
 from goneast import *
 import gonetype
 
+from collections import ChainMap
+
 
 class SymbolTable(object):
     '''
@@ -9,7 +11,9 @@ class SymbolTable(object):
     for adding and looking up nodes associated with identifiers.
     '''
     def __init__(self):
-        self.table = {}
+        self.table = ChainMap()
+        self.current_scope = self.table
+        self.root_scope = self.table
         self.type_objects = {
             int: gonetype.int_type,
             float: gonetype.float_type,
@@ -22,10 +26,20 @@ class SymbolTable(object):
         }
 
     def add(self, symbol, data):
-        self.table[symbol] = data
+        self.current_scope[symbol] = data
 
     def get(self, symbol):
-        return self.table.get(symbol, None)
+        if symbol in self.current_scope:
+            return self.current_scope[symbol]
+        return None
+
+    def push_scope(self):
+        self.current_scope = self.table.new_child()
+        return self.current_scope
+
+    def pop_scope(self):
+        self.current_scope = self.current_scope.parents
+        return self.current_scope
 
     def pprint(self):
         print("{}top".format("-" * 10))
@@ -147,17 +161,27 @@ class CheckProgramVisitor(NodeVisitor):
             self.symbol_table.add(node.name, node)
         node.ctx = "const"
 
+    def visit_ReturnStatement(self, node):
+        self.visit(node.expr)
+
+    def visit_FunctionDefinition(self, node):
+        symbol = self.symbol_table.get(node.prototype.name)
+        if symbol is not None:
+            self.error(node.lineno, "symbol '{}' is already declared".format(node.name))
+        else:
+            self.symbol_table.add(node.prototype.name, node.prototype)
+        self.symbol_table.push_scope()
+        self.visit(node.prototype)
+        node.type_obj = node.prototype.type_obj
+        self.visit(node.block)
+        self.symbol_table.pop_scope()
+
     def _visit_VarDeclaration_helper(self, node):
         symbol = self.symbol_table.get(node.name)
         if symbol is not None:
-            self.error(node.lineno, "var '{}' is already declared".format(node.name))
+            self.error(node.lineno, "symbol '{}' is already declared".format(node.name))
         else:
-            type_obj = self.symbol_table.type_objects.get(node.typename, None)
-            if type_obj is not None:
-                node.type_obj = type_obj
-            else:
-                self.error(node.lineno, "unknown type name '{}'".format(node.typename))
-                node.type_obj = gonetype.error_type
+            self._set_node_type(node)
             self.symbol_table.add(node.name, node)
         node.ctx = "var"
 
@@ -176,7 +200,7 @@ class CheckProgramVisitor(NodeVisitor):
         if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undeclared identifier '{}'".format(node.name))
             node.type_obj = gonetype.error_type
-        elif not isinstance(symbol, VarDeclaration) and not isinstance(symbol, ConstDeclaration) and not isinstance(symbol, VarDeclarationAssignment):
+        elif symbol.__class__.__name__ not in ("VarDeclaration", "ConstDeclaration", "VarDeclarationAssignment", "ParameterDeclaration"):
             self.error(node.lineno, "identifier '{}' is not data".format(node.name))
             node.type_obj = gonetype.error_type
         else:
@@ -196,7 +220,7 @@ class CheckProgramVisitor(NodeVisitor):
         if symbol is None or isinstance(symbol, gonetype.GoneType):
             self.error(node.lineno, "undefined function '{}'".format(node.name))
             node.type_obj = gonetype.error_type
-        elif not isinstance(symbol, FunctionPrototype):
+        elif symbol.__class__.__name__ not in ("FunctionPrototype", "FunctionDefinition"):
             self.error(node.lineno, "{} is not a function".format(node.name))
             node.type_obj = gonetype.error_type
         else:
@@ -221,6 +245,7 @@ class CheckProgramVisitor(NodeVisitor):
         self._visit_VarDeclaration_helper(node.prototype)
 
     def visit_FunctionPrototype(self, node):
+        self._set_node_type(node)
         self.visit(node.params)
         node.argtypes = []
         for parameter in node.params.parameters:
@@ -231,11 +256,16 @@ class CheckProgramVisitor(NodeVisitor):
             self.visit(declaration)
 
     def visit_ParameterDeclaration(self, node):
-        type_obj = self.symbol_table.type_objects.get(node.typename, None)
+        self._set_node_type(node)
+        self.symbol_table.add(node.name, node)
+
+    def _set_node_type(self, node, typename=None):
+        typename = node.typename if hasattr(node, 'typename') else typename
+        type_obj = self.symbol_table.type_objects.get(typename, None)
         if type_obj is not None:
             node.type_obj = type_obj
         else:
-            self.error(node.lineno, "unknown type name '{}'".format(node.typename))
+            self.error(node.lineno, "unknown type name '{}'".format(typename))
             node.type_obj = gonetype.error_type
 
 
