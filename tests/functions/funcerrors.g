@@ -31,3 +31,7 @@ func error3(x int) bar { // Undefined return type 'bar'
 }
 
 print q;  // undefined identifer (out of scope)
+
+func error4(x int) int {  // no return statement
+
+}

@@ -5,6 +5,10 @@ import gonetype
 from collections import ChainMap
 
 
+RET_TYPE_SYMBOL = "%return_type"
+HAS_RETURNED_SYMBOL = "%has_returned"
+
+
 class SymbolTable(object):
     '''
     Class representing a symbol table.  It should provide functionality
@@ -163,10 +167,11 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_ReturnStatement(self, node):
         self.visit(node.expr)
-        type_obj = self.symbol_table.get("%return_type")
+        type_obj = self.symbol_table.get(RET_TYPE_SYMBOL)
         if type_obj != node.expr.type_obj:
             self.error(node.lineno, "invalid return type {}, {} expected"
                 .format(node.expr.type_obj.name, type_obj.name))
+        self.symbol_table.add(HAS_RETURNED_SYMBOL, True)
 
     def visit_FunctionDefinition(self, node):
         symbol = self.symbol_table.get(node.prototype.name)
@@ -177,8 +182,11 @@ class CheckProgramVisitor(NodeVisitor):
         self.symbol_table.push_scope()
         self.visit(node.prototype)
         node.type_obj = node.prototype.type_obj
-        self.symbol_table.add("%return_type", node.type_obj)
+        self.symbol_table.add(RET_TYPE_SYMBOL, node.type_obj)
         self.visit(node.block)
+        if not self.symbol_table.get(HAS_RETURNED_SYMBOL):
+            self.error(node.lineno, "no return statement found in function '{}'"
+                .format(node.prototype.name))
         self.symbol_table.pop_scope()
 
     def _visit_VarDeclaration_helper(self, node):
