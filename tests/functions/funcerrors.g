@@ -35,3 +35,10 @@ print q;  // undefined identifer (out of scope)
 func error4(x int) int {  // no return statement
 
 }
+
+func error5(x int) int {
+    func error6(x int) int {  // nested
+        return 0;
+    }
+    return 0;
+}

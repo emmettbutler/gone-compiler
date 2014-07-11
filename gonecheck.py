@@ -6,6 +6,7 @@ from collections import ChainMap
 
 
 RET_TYPE_SYMBOL = "%return_type"
+IN_FUNC_SYMBOL = "%in_function"
 HAS_RETURNED_SYMBOL = "%has_returned"
 
 
@@ -180,15 +181,19 @@ class CheckProgramVisitor(NodeVisitor):
             self.error(node.lineno, "symbol '{}' is already declared".format(node.name))
         else:
             self.symbol_table.add(node.prototype.name, node.prototype)
-        self.symbol_table.push_scope()
-        self.visit(node.prototype)
-        node.type_obj = node.prototype.type_obj
-        self.symbol_table.add(RET_TYPE_SYMBOL, node.type_obj)
-        self.visit(node.block)
-        if not self.symbol_table.get(HAS_RETURNED_SYMBOL):
-            self.error(node.lineno, "no return statement found in function '{}'"
-                .format(node.prototype.name))
-        self.symbol_table.pop_scope()
+        if self.symbol_table.get(IN_FUNC_SYMBOL):
+            self.error(node.lineno, "function defined inside of a function")
+        else:
+            self.symbol_table.push_scope()
+            self.visit(node.prototype)
+            node.type_obj = node.prototype.type_obj
+            self.symbol_table.add(RET_TYPE_SYMBOL, node.type_obj)
+            self.symbol_table.add(IN_FUNC_SYMBOL, True)
+            self.visit(node.block)
+            if not self.symbol_table.get(HAS_RETURNED_SYMBOL):
+                self.error(node.lineno, "no return statement found in function '{}'"
+                    .format(node.prototype.name))
+            self.symbol_table.pop_scope()
 
     def _visit_VarDeclaration_helper(self, node):
         symbol = self.symbol_table.get(node.name)
