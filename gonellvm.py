@@ -343,7 +343,7 @@ def main():
             g.inner_block_visitor = inner_block_visitor
             g.visit(code.start_block)
             g.return_void()
-            #print(g.module)
+            print(g.module)
 
             # Verify and run function that was created during code generation
             print(":::: RUNNING ::::")
