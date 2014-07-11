@@ -11,6 +11,8 @@ float_type = Type.double()      # 64-bit float
 string_type = None
 bool_type = Type.int(1)
 
+args = None
+
 # A dictionary that maps the typenames used in IR to the corresponding
 # LLVM types defined above.   This is mainly provided for convenience
 # so you can quickly look up the type object given its type name.
@@ -56,7 +58,8 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
             if name == "main":
                 self.main_func = func
                 self.return_void()
-            print(self.module)
+            if args.verbose:
+                print(self.module)
             #func.verify()
 
     def declare_runtime_library(self):
@@ -156,7 +159,6 @@ class GenerateLLVM(object):
         return self.blockvisitor.function.append_basic_block(name)
 
     def make_function(self, name, ret_type, arg_types):
-        print("made func {}".format(name))
         func = Function.new(self.module,
                             Type.function(ret_type, arg_types, False),
                             name)
@@ -172,10 +174,9 @@ class GenerateLLVM(object):
     def generate_code(self, block):
         for op in block.instructions:
             opcode = op[0]
-            print(op)
             if hasattr(self, "emit_" + opcode):
                 getattr(self, "emit_" + opcode)(*op[1:])
-            else:
+            elif args.verbose:
                 print("Warning: No emit_" + opcode + "() method")
 
     # Creation of literal values.  Simply define as LLVM constants.
@@ -400,8 +401,16 @@ def main():
     import sys
     import ctypes
     import time
+    import argparse
     from errors import subscribe_errors, errors_reported
     from llvm.ee import ExecutionEngine
+
+    global args
+    parser = argparse.ArgumentParser("Run a 'Gone' program from a .g file")
+    parser.add_argument('file', type=str, default='', nargs=1)
+    parser.add_argument('--verbose', action="store_true",
+                        help="print verbose output")
+    args = parser.parse_args()
 
     # Load the Gone runtime library (see Makefile)
     ctypes._dlopen('./gonert.so', ctypes.RTLD_GLOBAL)
@@ -409,7 +418,7 @@ def main():
     lexer = gonelex.make_lexer()
     parser = goneparse.make_parser()
     with subscribe_errors(lambda msg: sys.stdout.write(msg + "\n")):
-        program = parser.parse(open(sys.argv[1]).read())
+        program = parser.parse(open(args.file[0]).read())
         # Check the program
         gonecheck.check_program(program)
         # If no errors occurred, generate code
@@ -422,12 +431,14 @@ def main():
             g.loop(code.functions)
 
             # Verify and run function that was created during code generation
-            print(":::: RUNNING ::::")
+            if args.verbose:
+                print(":::: RUNNING ::::")
             llvm_executor = ExecutionEngine.new(g.module)
             start = time.clock()
             llvm_executor.run_function(g.main_func, [])
-            print(":::: FINISHED ::::")
-            print("execution time: {0:.15f}s".format(time.clock() - start))
+            if args.verbose:
+                print(":::: FINISHED ::::")
+                print("execution time: {0:.15f}s".format(time.clock() - start))
 
 if __name__ == '__main__':
     main()
