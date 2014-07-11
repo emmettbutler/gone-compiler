@@ -419,23 +419,21 @@ def main():
     parser = goneparse.make_parser()
     with subscribe_errors(lambda msg: sys.stdout.write(msg + "\n")):
         program = parser.parse(open(args.file[0]).read())
-        # Check the program
         gonecheck.check_program(program)
-        # If no errors occurred, generate code
         if not errors_reported():
             code = gonecode.generate_code(program)
-            # Emit the code sequence
             g = GenerateLLVMBlockVisitor()
             inner_block_visitor = GenerateLLVM(blockvisitor=g)
             g.inner_block_visitor = inner_block_visitor
             g.loop(code.functions)
 
-            # Verify and run function that was created during code generation
             if args.verbose:
                 print(":::: RUNNING ::::")
-            llvm_executor = ExecutionEngine.new(g.module)
             start = time.clock()
+
+            llvm_executor = ExecutionEngine.new(g.module)
             llvm_executor.run_function(g.main_func, [])
+
             if args.verbose:
                 print(":::: FINISHED ::::")
                 print("execution time: {0:.15f}s".format(time.clock() - start))
