@@ -163,6 +163,10 @@ class CheckProgramVisitor(NodeVisitor):
 
     def visit_ReturnStatement(self, node):
         self.visit(node.expr)
+        type_obj = self.symbol_table.get("%return_type")
+        if type_obj != node.expr.type_obj:
+            self.error(node.lineno, "invalid return type {}, {} expected"
+                .format(node.expr.type_obj.name, type_obj.name))
 
     def visit_FunctionDefinition(self, node):
         symbol = self.symbol_table.get(node.prototype.name)
@@ -173,6 +177,7 @@ class CheckProgramVisitor(NodeVisitor):
         self.symbol_table.push_scope()
         self.visit(node.prototype)
         node.type_obj = node.prototype.type_obj
+        self.symbol_table.add("%return_type", node.type_obj)
         self.visit(node.block)
         self.symbol_table.pop_scope()
 
