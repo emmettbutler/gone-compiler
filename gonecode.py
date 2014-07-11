@@ -23,6 +23,7 @@ unary_ops = {
     '!': 'not'
 }
 
+
 class GenerateCode(goneast.NodeVisitor):
     '''
     Node visitor class that creates 3-address encoded instruction sequences.
@@ -64,19 +65,18 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block.append(inst)
 
         if hasattr(node, 'expr'):
-            # default value is not supplied
             self.visit(node.expr)
             inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
             self.current_block.append(inst)
         else:
             target = self.new_temp(node.type_obj)
+
             # make a default value for declarations without definitions
             inst = ('literal_' + node.type_obj.name, node.type_obj.default, target)
             self.current_block.append(inst)
 
             inst = ('store_' + node.type_obj.name, target, node.name)
             self.current_block.append(inst)
-
 
     def visit_ParameterDeclaration(self, node):
         self._declaration_helper(node)
@@ -228,6 +228,17 @@ class GenerateCode(goneast.NodeVisitor):
 
         self.current_block = BasicBlock()
         cond_block.next_block = self.current_block
+
+    def visit_FunctionDefinition(self, node):
+        func_block = BasicBlock()
+        self.current_block.next_block = func_block
+        self.current_block = func_block
+
+        self.visit(node.prototype)
+        self.visit(node.block)
+
+        self.current_block = BasicBlock()
+        func_block.next_block = self.current_block
 
 
 def generate_code(node):
