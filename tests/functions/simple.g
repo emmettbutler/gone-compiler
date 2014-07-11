@@ -1,7 +1,11 @@
 var a int = 8 + 5 * 5;
 
+func testb() int {
+    var y int = 69;
+    return 0;
+}
+
 func test(x int) int {
-    print x;
     if true {
         return 6900000;
     } else {

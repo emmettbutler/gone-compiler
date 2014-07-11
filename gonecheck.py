@@ -196,11 +196,11 @@ class CheckProgramVisitor(NodeVisitor):
             self.symbol_table.pop_scope()
 
     def _visit_VarDeclaration_helper(self, node):
+        self._set_node_type(node)
         symbol = self.symbol_table.get(node.name)
         if symbol is not None:
             self.error(node.lineno, "symbol '{}' is already declared".format(node.name))
         else:
-            self._set_node_type(node)
             self.symbol_table.add(node.name, node)
         node.ctx = "var"
         node.scope = "global" if self.symbol_table.current_scope == self.symbol_table.root_scope else "local"

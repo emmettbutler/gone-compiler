@@ -46,6 +46,7 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
             self.globals[name] = self.inner_block_visitor.make_function(name, ret_type, arg_types)
 
         for name, start_block, ret_type, arg_types in toplevel_blocks:
+            self.locals.clear()
             func = self.functions[name]
             block = func.append_basic_block("start")
             self.builder = Builder.new(block)
@@ -381,7 +382,7 @@ class GenerateLLVM(object):
         rettype = typemap[rettypename]
         parmtypes = [typemap[pname] for pname in parmtypenames]
         func_type = Type.function(rettype, parmtypes, False)
-        self.vars[name] = Function.new(self.module, func_type, name)
+        self.globals[name] = Function.new(self.module, func_type, name)
 
     # Call an external function.
     def emit_call_func(self, funcname, target, *funcargs):
