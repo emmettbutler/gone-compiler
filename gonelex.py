@@ -2,7 +2,7 @@ from errors import error
 from ply.lex import lex
 
 tokens = [
-    'ID', 'CONST', 'VAR', 'PRINT', 'FUNC', 'EXTERN',
+    'ID', 'CONST', 'VAR', 'PRINT', 'FUNC', 'EXTERN', 'RETURN',
 
     'PLUS', 'MINUS', 'TIMES', 'DIVIDE',
     'ASSIGN', 'SEMI', 'LPAREN', 'RPAREN',
@@ -81,6 +81,7 @@ def t_ID(t):
         'var': 'VAR',
         'print': 'PRINT',
         'func': 'FUNC',
+        'return': 'RETURN',
         'extern': 'EXTERN',
         'true': 'BOOL',
         'false': 'BOOL',

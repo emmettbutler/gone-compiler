@@ -58,8 +58,24 @@ def p_statement(p):
               | extern_declaration
               | conditional_statement
               | while_statement
+              | return_statement
+              | function_definition
     '''
     p[0] = p[1]
+
+
+def p_function_definition(p):
+    '''
+    function_definition : func_prototype LBRACE block RBRACE
+    '''
+    p[0] = FunctionDefinition(p[1], p[3], lineno=p.lineno(2))
+
+
+def p_return_statemnt(p):
+    '''
+    return_statement : RETURN expression SEMI
+    '''
+    p[0] = ReturnStatement(p[2], lineno=p.lineno(1))
 
 
 def p_conditional_statement(p):

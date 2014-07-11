@@ -125,6 +125,14 @@ class ExternDeclaration(AST):
     _fields = ['prototype']
 
 
+class ReturnStatement(AST):
+    _fields = ['expr']
+
+
+class FunctionDefinition(AST):
+    _fields = ['prototype', 'block']
+
+
 class FunctionPrototype(AST):
     '''
     FUNC ID LPAREN parameters RPAREN typename
