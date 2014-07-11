@@ -11,4 +11,4 @@ func test(x int) int {
 }
 
 print 96;
-var b int = 58 * 5;
+var b int = test(7);

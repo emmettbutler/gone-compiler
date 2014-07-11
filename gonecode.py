@@ -1,6 +1,7 @@
 import goneast
 from goneblock import BasicBlock, ConditionalBlock, WhileBlock, EmitBlocksVisitor
 from collections import defaultdict
+from gonetype import int_type
 
 binary_ops = {
     '+': 'add',
@@ -34,9 +35,8 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = BasicBlock()
         self.start_block = self.current_block
         self.externs = []
-        self.functions = {}
+        self.functions = {'@main': (self.start_block, None)}
         self.in_function = False
-        self.functions['@main'] = (self.start_block, None)
 
     def visit(self, node):
         '''
@@ -256,6 +256,8 @@ def generate_code(node):
     '''
     gen = GenerateCode()
     gen.visit(node)
+    t1 = gen.new_temp(int_type)
+    gen.current_block.append(('call_func', 'main', t1))
     return gen
 
 
