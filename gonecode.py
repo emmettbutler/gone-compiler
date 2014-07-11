@@ -30,21 +30,27 @@ class GenerateCode(goneast.NodeVisitor):
     '''
     def __init__(self):
         super(GenerateCode, self).__init__()
-
-        # version dictionary for temporaries
         self.versions = defaultdict(int)
-
-        # The generated code (list of tuples)
         self.current_block = BasicBlock()
         self.start_block = self.current_block
-
-        # A list of external declarations (and types)
         self.externs = []
+        self.functions = {}
+        self.in_function = False
+        self.functions['@main'] = (self.start_block, None)
 
-    def pprint(self, code):
-        print("code:")
-        for a in code:
-            print(a)
+    def visit(self, node):
+        '''
+        Execute a method of the form visit_NodeName(node) where
+        NodeName is the name of the class of a particular node.
+        '''
+        if node:
+            method = 'visit_' + node.__class__.__name__
+            visitor = getattr(self, method, self.generic_visit)
+            if not self.in_function:
+                self.current_block = self.start_block
+            return visitor(node)
+        else:
+            return None
 
     def new_temp(self, typeobj):
         '''
@@ -55,8 +61,10 @@ class GenerateCode(goneast.NodeVisitor):
         return name
 
     def visit_Program(self, node):
-        for statement in node.statements.statements:
-            #print(statement)
+        self.visit(node.statements)
+
+    def visit_Statements(self, node):
+        for statement in node.statements:
             self.visit(statement)
 
     def _declaration_helper(self, node):
@@ -230,6 +238,7 @@ class GenerateCode(goneast.NodeVisitor):
         cond_block.next_block = self.current_block
 
     def visit_FunctionDefinition(self, node):
+        self.in_function = True
         func_block = BasicBlock()
         self.current_block.next_block = func_block
         self.current_block = func_block
@@ -237,8 +246,8 @@ class GenerateCode(goneast.NodeVisitor):
         self.visit(node.prototype)
         self.visit(node.block)
 
-        self.current_block = BasicBlock()
-        func_block.next_block = self.current_block
+        self.functions[node.prototype.name] = (func_block, node)
+        self.in_function = False
 
 
 def generate_code(node):
