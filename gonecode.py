@@ -58,36 +58,37 @@ class GenerateCode(goneast.NodeVisitor):
             #print(statement)
             self.visit(statement)
 
+    def _declaration_helper(self, node):
+        alloc_base = "global" if node.scope == "global" else "alloc"
+        inst = (alloc_base + '_' + node.type_obj.name, node.name)
+        self.current_block.append(inst)
+
+        if hasattr(node, 'expr'):
+            # default value is not supplied
+            self.visit(node.expr)
+            inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
+            self.current_block.append(inst)
+        else:
+            target = self.new_temp(node.type_obj)
+            # make a default value for declarations without definitions
+            inst = ('literal_' + node.type_obj.name, node.type_obj.default, target)
+            self.current_block.append(inst)
+
+            inst = ('store_' + node.type_obj.name, target, node.name)
+            self.current_block.append(inst)
+
+
+    def visit_ParameterDeclaration(self, node):
+        self._declaration_helper(node)
+
     def visit_VarDeclarationAssignment(self, node):
-        inst = ('alloc_' + node.type_obj.name, node.name)
-        self.current_block.append(inst)
-
-        self.visit(node.expr)
-
-        inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
-        self.current_block.append(inst)
-
-    def visit_VarDeclaration(self, node):
-        inst = ('alloc_' + node.type_obj.name, node.name)
-        self.current_block.append(inst)
-
-        target = self.new_temp(node.type_obj)
-
-        # make a default value for declarations without definitions
-        inst = ('literal_' + node.type_obj.name, node.type_obj.default, target)
-        self.current_block.append(inst)
-
-        inst = ('store_' + node.type_obj.name, target, node.name)
-        self.current_block.append(inst)
+        self._declaration_helper(node)
 
     def visit_ConstDeclaration(self, node):
-        inst = ('alloc_' + node.type_obj.name, node.name)
-        self.current_block.append(inst)
+        self._declaration_helper(node)
 
-        self.visit(node.expr)
-
-        inst = ('store_' + node.type_obj.name, node.expr.gen_location, node.name)
-        self.current_block.append(inst)
+    def visit_VarDeclaration(self, node):
+        self._declaration_helper(node)
 
     def visit_AssignmentStatement(self, node):
         self.visit(node.expr)
