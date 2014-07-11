@@ -15,4 +15,8 @@ if a > b {
   print b;
 }
 
+func test() int {
+return 1;
+}
 print a;
+print b;

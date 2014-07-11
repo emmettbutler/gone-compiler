@@ -11,8 +11,13 @@ class BlockVisitor(object):
                 getattr(self, name)(block)
             block = block.next_block
 
+    def loop(self, toplevel_blocks):
+        for name, (start_block, ret_type, arg_types) in toplevel_blocks.items():
+            print("FUNCTION: {}".format(name))
+            self.visit(start_block)
 
-class BaseLLVMBlockVisitor(object):
+
+class BaseLLVMBlockVisitor(BlockVisitor):
     '''
     Class for visiting basic blocks.  Define a subclass and define
     methods such as visit_BasicBlock or visit_IfBlock to implement
@@ -62,7 +67,7 @@ class Block(object):
         self.instructions = []   # Instructions in the block
         self.next_block = None    # Link to the next block
 
-    def append(self,instr):
+    def append(self, instr):
         self.instructions.append(instr)
 
     def __iter__(self):
@@ -83,7 +88,7 @@ class ConditionalBlock(Block):
     two branches to handle each possibility.
     '''
     def __init__(self, testvar=None):
-        super(ConditionalBlock,self).__init__()
+        super(ConditionalBlock, self).__init__()
         self.testvar = testvar
         self.true_branch = None
         self.false_branch = None

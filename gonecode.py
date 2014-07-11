@@ -35,8 +35,7 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = BasicBlock()
         self.start_block = self.current_block
         self.externs = []
-        self.functions = {'@main': (self.start_block, None)}
-        self.in_function = False
+        self.functions = {'main': (self.start_block, 'void', [])}
 
     def visit(self, node):
         '''
@@ -46,8 +45,6 @@ class GenerateCode(goneast.NodeVisitor):
         if node:
             method = 'visit_' + node.__class__.__name__
             visitor = getattr(self, method, self.generic_visit)
-            if not self.in_function:
-                self.current_block = self.start_block
             return visitor(node)
         else:
             return None
@@ -102,6 +99,12 @@ class GenerateCode(goneast.NodeVisitor):
         self.visit(node.expr)
 
         inst = ('store_' + node.expr.type_obj.name, node.expr.gen_location, node.name)
+        self.current_block.append(inst)
+
+    def visit_ReturnStatement(self, node):
+        self.visit(node.expr)
+
+        inst = ('return_' + node.expr.type_obj.name, node.expr.gen_location)
         self.current_block.append(inst)
 
     def visit_ExternDeclaration(self, node):
@@ -238,16 +241,19 @@ class GenerateCode(goneast.NodeVisitor):
         cond_block.next_block = self.current_block
 
     def visit_FunctionDefinition(self, node):
-        self.in_function = True
+        prev_block = self.current_block
+
         func_block = BasicBlock()
-        self.current_block.next_block = func_block
         self.current_block = func_block
 
         self.visit(node.prototype)
         self.visit(node.block)
 
-        self.functions[node.prototype.name] = (func_block, node)
-        self.in_function = False
+        ret_type = node.prototype.typename
+        arg_types = [a.typename for a in node.prototype.params.parameters]
+        self.functions[node.prototype.name] = (func_block, ret_type, arg_types)
+
+        self.current_block = prev_block
 
 
 def generate_code(node):
@@ -257,7 +263,7 @@ def generate_code(node):
     gen = GenerateCode()
     gen.visit(node)
     t1 = gen.new_temp(int_type)
-    gen.current_block.append(('call_func', 'main', t1))
+    #gen.current_block.append(('call_func', '@main', t1))
     return gen
 
 
@@ -276,7 +282,7 @@ def main():
         # If no errors occurred, generate code
         if not errors_reported():
             code = generate_code(program)
-            code = EmitBlocksVisitor().visit(code.start_block)
+            code = EmitBlocksVisitor().loop(code.functions)
 
 if __name__ == '__main__':
     main()
