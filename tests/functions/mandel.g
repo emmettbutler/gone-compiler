@@ -23,13 +23,13 @@ func in_mandelbrot(x0 float, y0 float, n int) bool {
         x = xtemp;
         n = n - 1;
         if x*x + y*y > 4.0 {
-	    return false;
+            return false;
         }
     }
     return true;
 }
 
-func main() int {
+func _main() int {
      var dx float = (xmax - xmin)/width;
      var dy float = (ymax - ymin)/height;
 
@@ -37,12 +37,12 @@ func main() int {
      var x float;
      var r int;
      while y >= ymin {
-     	 x = xmin;
+          x = xmin;
          while x < xmax {
              if in_mandelbrot(x,y,threshhold) {
-               	r = putchar(42);   
+                   r = putchar(42);
              } else {
-	        r = putchar(46);
+            r = putchar(46);
              }
              x = x + dx;
          }
@@ -51,6 +51,7 @@ func main() int {
      }
      return 0;
 }
+print _main();
 
 
 

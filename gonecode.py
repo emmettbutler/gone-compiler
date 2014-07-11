@@ -35,7 +35,7 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = BasicBlock()
         self.start_block = self.current_block
         self.externs = []
-        self.functions = {'main': (self.start_block, 'void', [])}
+        self.functions = [('main', self.start_block, 'void', [])]
 
     def visit(self, node):
         '''
@@ -84,7 +84,7 @@ class GenerateCode(goneast.NodeVisitor):
             self.current_block.append(inst)
 
     def visit_ParameterDeclaration(self, node):
-        self._declaration_helper(node)
+        pass
 
     def visit_VarDeclarationAssignment(self, node):
         self._declaration_helper(node)
@@ -246,12 +246,15 @@ class GenerateCode(goneast.NodeVisitor):
         func_block = BasicBlock()
         self.current_block = func_block
 
-        self.visit(node.prototype)
+        for n, parm in enumerate(node.prototype.params.parameters):
+            inst = ('parm_' + parm.type_obj.name, parm.name, n)
+            self.current_block.append(inst)
+
         self.visit(node.block)
 
         ret_type = node.prototype.typename
         arg_types = [a.typename for a in node.prototype.params.parameters]
-        self.functions[node.prototype.name] = (func_block, ret_type, arg_types)
+        self.functions.append((node.prototype.name, func_block, ret_type, arg_types))
 
         self.current_block = prev_block
 

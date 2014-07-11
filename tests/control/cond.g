@@ -16,7 +16,7 @@ if a > b {
 }
 
 func test() int {
-return 1;
+    return 1;
 }
 print a;
 print b;

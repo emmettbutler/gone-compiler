@@ -1,14 +1,13 @@
-print 84;
 var a int = 8 + 5 * 5;
 
 func test(x int) int {
-    x = 3;
+    print x;
     if true {
-        return 1;
+        return 6900000;
     } else {
         return 2;
     }
+    return 2;
 }
-
-print 96;
+print test(5);
 var b int = test(7);

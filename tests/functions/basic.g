@@ -5,3 +5,6 @@ func b() int {
     print 2;
     return 1;
 }
+
+print a;
+

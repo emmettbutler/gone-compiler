@@ -33,26 +33,30 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
         self.temps = {}
         self.module = Module.new("module")
         self.builder = None
-        self.function = None
+        self.functions = {}
         self.declare_runtime_library()
         self.main_func = None
+        self.function = None
 
     def loop(self, toplevel_blocks):
-        for name, (start_block, ret_type, arg_types) in toplevel_blocks.items():
+        for name, start_block, ret_type, arg_types in toplevel_blocks:
             arg_types = [typemap[a] for a in arg_types]
             ret_type = typemap[ret_type]
-            func, block = self.inner_block_visitor.make_function(name, ret_type, arg_types)
-            if self.builder is None:
-                self.builder = Builder.new(block)
-            start_block.llvm = block
-            start_block.func = func
-            self.globals[name] = func
-        for name, (start_block, ret_type, arg_types) in toplevel_blocks.items():
-            self.inner_block_visitor.set_block(start_block.llvm)
+
+            self.globals[name] = self.inner_block_visitor.make_function(name, ret_type, arg_types)
+
+        for name, start_block, ret_type, arg_types in toplevel_blocks:
+            func = self.functions[name]
+            block = func.append_basic_block("start")
+            self.builder = Builder.new(block)
+            self.inner_block_visitor.set_block(block)
+            self.function = func
             self.visit(start_block)
             if name == "main":
-                self.main_func = start_block.func
+                self.main_func = func
                 self.return_void()
+            print(self.module)
+            #func.verify()
 
     def declare_runtime_library(self):
         self.runtime = {}
@@ -144,22 +148,19 @@ class GenerateLLVM(object):
     def runtime(self):
         return self.blockvisitor.runtime
 
-    @property
-    def function(self):
-        return self.blockvisitor.function
-
     def set_block(self, block):
         self.builder.position_at_end(block)
 
     def add_block(self, name):
-        return self.function.append_basic_block(name)
+        return self.blockvisitor.function.append_basic_block(name)
 
     def make_function(self, name, ret_type, arg_types):
-        self.blockvisitor.function = Function.new(self.module,
-                                     Type.function(ret_type, arg_types, False),
-                                     name)
-        block = self.function.append_basic_block("start")
-        return self.function, block
+        print("made func {}".format(name))
+        func = Function.new(self.module,
+                            Type.function(ret_type, arg_types, False),
+                            name)
+        self.blockvisitor.functions[name] = func
+        return func
 
     def cbranch(self, testvar, true_block, false_block):
         self.builder.cbranch(self.temps[testvar], true_block, false_block)
@@ -215,6 +216,18 @@ class GenerateLLVM(object):
         var = self.builder.alloca(bool_type, name=name)
         self.locals[name] = var
 
+    def emit_parm_int(self, name, argn):
+        self.emit_alloc_int(name)
+        self.builder.store(self.blockvisitor.function.args[argn], self.vars[name])
+
+    def emit_parm_float(self, name, argn):
+        self.emit_alloc_float(name)
+        self.builder.store(self.blockvisitor.function.args[argn], self.vars[name])
+
+    def emit_parm_bool(self, name, argn):
+        self.emit_alloc_bool(name)
+        self.builder.store(self.blockvisitor.function.args[argn], self.vars[name])
+
     def emit_store_int(self, source, name):
         self.builder.store(self.vars[name], Constant.int(int_type, self.temps[source]))
 
@@ -222,7 +235,7 @@ class GenerateLLVM(object):
         self.builder.store(self.vars[name], Constant.real(float_type, self.temps[source]))
 
     def emit_store_bool(self, source, name):
-        self.builder.store(self.vars[name], Constant.real(bool_type, self.temps[source]))
+        self.builder.store(self.vars[name], Constant.int(bool_type, self.temps[source]))
 
     # Load/store instructions for variables.  Load needs to pull a
     # value from a global variable and store in a temporary. Store
@@ -301,22 +314,22 @@ class GenerateLLVM(object):
         self.temps[target] = self.builder.icmp(ICMP_NE, self.temps[left], self.temps[right], target)
 
     def emit_lt_float(self, left, right, target):
-        self.temps[target] = self.builder.icmp(FCMP_ULT, self.temps[left], self.temps[right], target)
+        self.temps[target] = self.builder.fcmp(FCMP_ULT, self.temps[left], self.temps[right], target)
 
     def emit_gt_float(self, left, right, target):
-        self.temps[target] = self.builder.icmp(FCMP_UGT, self.temps[left], self.temps[right], target)
+        self.temps[target] = self.builder.fcmp(FCMP_UGT, self.temps[left], self.temps[right], target)
 
     def emit_lte_float(self, left, right, target):
-        self.temps[target] = self.builder.icmp(FCMP_ULE, self.temps[left], self.temps[right], target)
+        self.temps[target] = self.builder.fcmp(FCMP_ULE, self.temps[left], self.temps[right], target)
 
     def emit_gte_float(self, left, right, target):
-        self.temps[target] = self.builder.icmp(FCMP_UGE, self.temps[left], self.temps[right], target)
+        self.temps[target] = self.builder.fcmp(FCMP_UGE, self.temps[left], self.temps[right], target)
 
     def emit_eq_float(self, left, right, target):
-        self.temps[target] = self.builder.icmp(FCMP_UEQ, self.temps[left], self.temps[right], target)
+        self.temps[target] = self.builder.fcmp(FCMP_UEQ, self.temps[left], self.temps[right], target)
 
     def emit_neq_float(self, left, right, target):
-        self.temps[target] = self.builder.icmp(FCMP_UNE, self.temps[left], self.temps[right], target)
+        self.temps[target] = self.builder.fcmp(FCMP_UNE, self.temps[left], self.temps[right], target)
 
     def emit_and_bool(self, left, right, target):
         self.temps[target] = self.builder.and_(self.temps[left], self.temps[right], target)
@@ -406,11 +419,9 @@ def main():
             inner_block_visitor = GenerateLLVM(blockvisitor=g)
             g.inner_block_visitor = inner_block_visitor
             g.loop(code.functions)
-            print(g.module)
 
             # Verify and run function that was created during code generation
             print(":::: RUNNING ::::")
-            g.function.verify()
             llvm_executor = ExecutionEngine.new(g.module)
             start = time.clock()
             llvm_executor.run_function(g.main_func, [])

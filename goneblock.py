@@ -12,7 +12,7 @@ class BlockVisitor(object):
             block = block.next_block
 
     def loop(self, toplevel_blocks):
-        for name, (start_block, ret_type, arg_types) in toplevel_blocks.items():
+        for name, start_block, ret_type, arg_types in toplevel_blocks:
             print("FUNCTION: {}".format(name))
             self.visit(start_block)
 
