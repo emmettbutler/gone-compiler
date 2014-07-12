@@ -29,7 +29,7 @@ func in_mandelbrot(x0 float, y0 float, n int) bool {
     return true;
 }
 
-func _main() int {
+func main() int {
      var dx float = (xmax - xmin)/width;
      var dy float = (ymax - ymin)/height;
 
@@ -51,4 +51,3 @@ func _main() int {
      }
      return 0;
 }
-_main();

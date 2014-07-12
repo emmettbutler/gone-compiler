@@ -10,6 +10,7 @@ int_type = Type.int()         # 32-bit integer
 float_type = Type.double()      # 64-bit float
 string_type = None
 bool_type = Type.int(1)
+void_type = Type.void()
 
 args = None
 
@@ -21,7 +22,7 @@ typemap = {
     'float': float_type,
     'string': string_type,
     'bool': bool_type,
-    'void': Type.void()
+    'void': void_type
 }
 
 
@@ -39,6 +40,8 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
         self.declare_runtime_library()
         self.main_func = None
         self.function = None
+        self.last_branch = None
+        self.block = None
 
     def loop(self, toplevel_blocks):
         for name, start_block, ret_type, arg_types in toplevel_blocks:
@@ -48,19 +51,26 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
             self.globals[name] = self.inner_block_visitor.make_function(name, ret_type, arg_types)
 
         for name, start_block, ret_type, arg_types in toplevel_blocks:
+            arg_types = [typemap[a] for a in arg_types]
+            ret_type = typemap[ret_type]
+
             self.locals.clear()
             func = self.functions[name]
-            block = func.append_basic_block("start")
-            self.builder = Builder.new(block)
-            self.inner_block_visitor.set_block(block)
+            self.block = func.append_basic_block("start")
+            self.builder = Builder.new(self.block)
+            self.inner_block_visitor.set_block(self.block)
             self.function = func
+            self.exit_block = self.function.append_basic_block("exit")
+            if ret_type is not void_type:
+                self.locals['return'] = self.builder.alloca(ret_type, name="return")
             self.visit(start_block)
-            if name == "main":
+            if name == "@main":
                 self.main_func = func
-                self.return_void()
+                self.inner_block_visitor.branch(self.exit_block)
+            self.terminate()
             if args.verbose:
                 print(self.module)
-            #func.verify()
+            func.verify()
 
     def declare_runtime_library(self):
         self.runtime = {}
@@ -74,6 +84,16 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
         self.runtime['_print_bool'] = Function.new(self.module,
                                                    Type.function(Type.void(), [bool_type], False),
                                                    "_print_bool")
+
+    def terminate(self):
+        if self.last_branch != self.block:
+            self.builder.branch(self.exit_block)
+        self.builder.position_at_end(self.exit_block)
+
+        if 'return' in self.locals:
+            self.builder.ret(self.builder.load(self.locals['return']))
+        else:
+            self.builder.ret_void()
 
     def visit_BasicBlock(self, block, pred=None):
         self.inner_block_visitor.generate_code(block)
@@ -129,6 +149,10 @@ class GenerateLLVM(object):
         return self.blockvisitor.vars
 
     @property
+    def last_branch(self):
+        return self.blockvisitor.last_branch
+
+    @property
     def locals(self):
         return self.blockvisitor.locals
 
@@ -139,6 +163,10 @@ class GenerateLLVM(object):
     @property
     def temps(self):
         return self.blockvisitor.temps
+
+    @property
+    def exit_block(self):
+        return self.blockvisitor.exit_block
 
     @property
     def builder(self):
@@ -153,6 +181,7 @@ class GenerateLLVM(object):
         return self.blockvisitor.runtime
 
     def set_block(self, block):
+        self.blockvisitor.block = block
         self.builder.position_at_end(block)
 
     def add_block(self, name):
@@ -169,7 +198,9 @@ class GenerateLLVM(object):
         self.builder.cbranch(self.temps[testvar], true_block, false_block)
 
     def branch(self, next_block):
-        self.builder.branch(next_block)
+        if self.blockvisitor.last_branch != self.blockvisitor.block:
+            self.builder.branch(next_block)
+        self.blockvisitor.last_branch = self.blockvisitor.block
 
     def generate_code(self, block):
         for op in block.instructions:
@@ -261,13 +292,16 @@ class GenerateLLVM(object):
         self.builder.store(self.temps[source], self.vars[target])
 
     def emit_return_int(self, source):
-        self.builder.ret(self.temps[source])
+        self.builder.store(self.temps[source], self.locals['return'])
+        self.branch(self.exit_block)
 
     def emit_return_float(self, source):
-        self.builder.ret(self.temps[source])
+        self.builder.store(self.temps[source], self.locals['return'])
+        self.branch(self.exit_block)
 
     def emit_return_bool(self, source):
-        self.builder.ret(self.temps[source])
+        self.builder.store(self.temps[source], self.locals['return'])
+        self.branch(self.exit_block)
 
     # Binary + operator
     def emit_add_int(self, left, right, target):

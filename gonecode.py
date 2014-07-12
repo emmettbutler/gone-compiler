@@ -35,7 +35,7 @@ class GenerateCode(goneast.NodeVisitor):
         self.current_block = BasicBlock()
         self.start_block = self.current_block
         self.externs = []
-        self.functions = [('main', self.start_block, 'void', [])]
+        self.functions = [('@main', self.start_block, 'void', [])]
 
     def visit(self, node):
         '''
@@ -266,7 +266,8 @@ def generate_code(node):
     gen = GenerateCode()
     gen.visit(node)
     t1 = gen.new_temp(int_type)
-    #gen.current_block.append(('call_func', '@main', t1))
+    if 'main' in [a[0] for a in gen.functions]:
+        gen.current_block.append(('call_func', 'main', t1))
     return gen
 
 
