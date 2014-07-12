@@ -29,128 +29,81 @@ typemap = {
 class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
     def __init__(self):
         super(GenerateLLVMBlockVisitor, self).__init__()
-        self.inner_block_visitor = None
+        self.generator = None
         self.locals = {}
         self.globals = {}
         self.vars = ChainMap(self.locals, self.globals)
         self.temps = {}
         self.module = Module.new("module")
-        self.builder = None
-        self.functions = {}
-        self.declare_runtime_library()
-        self.main_func = None
-        self.function = None
-        self.last_branch = None
-        self.block = None
 
-    def loop(self, toplevel_blocks):
-        for name, start_block, ret_type, arg_types in toplevel_blocks:
-            arg_types = [typemap[a] for a in arg_types]
-            ret_type = typemap[ret_type]
-
-            self.globals[name] = self.inner_block_visitor.make_function(name, ret_type, arg_types)
+    def visit_functions(self, toplevel_blocks):
+        self.generator.declare_runtime_library()
 
         for name, start_block, ret_type, arg_types in toplevel_blocks:
-            arg_types = [typemap[a] for a in arg_types]
-            ret_type = typemap[ret_type]
+            ret_type, arg_types = typemap[ret_type], [typemap[a] for a in arg_types]
+            self.globals[name] = self.generator.make_function(name, ret_type, arg_types)
 
+        for name, start_block, ret_type, arg_types in toplevel_blocks:
             self.locals.clear()
-            func = self.functions[name]
-            self.block = func.append_basic_block("start")
-            self.builder = Builder.new(self.block)
-            self.inner_block_visitor.set_block(self.block)
-            self.function = func
-            self.exit_block = self.function.append_basic_block("exit")
-            if ret_type is not void_type:
-                self.locals['return'] = self.builder.alloca(ret_type, name="return")
+            self.generator.begin_function(name, ret_type, arg_types)
             self.visit(start_block)
-            if name == "@main":
-                self.main_func = func
-                self.inner_block_visitor.branch(self.exit_block)
-            self.terminate()
-            if args.verbose:
-                print(self.module)
-            func.verify()
-
-    def declare_runtime_library(self):
-        self.runtime = {}
-
-        self.runtime['_print_int'] = Function.new(self.module,
-                                                  Type.function(Type.void(), [int_type], False),
-                                                  "_print_int")
-        self.runtime['_print_float'] = Function.new(self.module,
-                                                    Type.function(Type.void(), [float_type], False),
-                                                    "_print_float")
-        self.runtime['_print_bool'] = Function.new(self.module,
-                                                   Type.function(Type.void(), [bool_type], False),
-                                                   "_print_bool")
-
-    def terminate(self):
-        if self.last_branch != self.block:
-            self.builder.branch(self.exit_block)
-        self.builder.position_at_end(self.exit_block)
-
-        if 'return' in self.locals:
-            self.builder.ret(self.builder.load(self.locals['return']))
-        else:
-            self.builder.ret_void()
+            self.generator.end_function(name)
 
     def visit_BasicBlock(self, block, pred=None):
-        self.inner_block_visitor.generate_code(block)
+        self.generator.generate_code(block)
 
     def visit_ConditionalBlock(self, block):
         self.visit_BasicBlock(block)
 
-        then_block = self.inner_block_visitor.add_block("then")
-        else_block = self.inner_block_visitor.add_block("else")
-        merge_block = self.inner_block_visitor.add_block("merge")
+        then_block = self.generator.add_block("then")
+        else_block = self.generator.add_block("else")
+        merge_block = self.generator.add_block("merge")
 
-        self.inner_block_visitor.cbranch(block.testvar, then_block, else_block)
+        self.generator.cbranch(block.testvar, then_block, else_block)
 
-        self.inner_block_visitor.set_block(then_block)
+        self.generator.set_block(then_block)
         self.visit(block.true_branch)
-        self.inner_block_visitor.branch(merge_block)
+        self.generator.branch(merge_block)
 
-        self.inner_block_visitor.set_block(else_block)
+        self.generator.set_block(else_block)
         self.visit(block.false_branch)
-        self.inner_block_visitor.branch(merge_block)
+        self.generator.branch(merge_block)
 
-        self.inner_block_visitor.set_block(merge_block)
+        self.generator.set_block(merge_block)
 
     def visit_WhileBlock(self, block):
-        test_block = self.inner_block_visitor.add_block("whiletest")
+        test_block = self.generator.add_block("whiletest")
 
-        self.inner_block_visitor.branch(test_block)
-        self.inner_block_visitor.set_block(test_block)
+        self.generator.branch(test_block)
+        self.generator.set_block(test_block)
 
-        self.inner_block_visitor.generate_code(block)
+        self.generator.generate_code(block)
 
-        loop_block = self.inner_block_visitor.add_block("loop")
-        after_loop = self.inner_block_visitor.add_block("afterloop")
+        loop_block = self.generator.add_block("loop")
+        after_loop = self.generator.add_block("afterloop")
 
-        self.inner_block_visitor.cbranch(block.testvar, loop_block, after_loop)
+        self.generator.cbranch(block.testvar, loop_block, after_loop)
 
-        self.inner_block_visitor.set_block(loop_block)
+        self.generator.set_block(loop_block)
         self.visit(block.loop_branch)
-        self.inner_block_visitor.branch(test_block)
+        self.generator.branch(test_block)
 
-        self.inner_block_visitor.set_block(after_loop)
-
-    def return_void(self):
-        self.builder.ret_void()
+        self.generator.set_block(after_loop)
 
 
 class GenerateLLVM(object):
     def __init__(self, blockvisitor=None):
         self.blockvisitor = blockvisitor
+        self.builder = None
+        self.exit_block = None
+        self.functions = {}
+        self.function = None
+        self.last_branch = None
+        self.block = None
 
     @property
     def vars(self):
         return self.blockvisitor.vars
-
-    @property
-    def last_branch(self):
-        return self.blockvisitor.last_branch
 
     @property
     def locals(self):
@@ -165,42 +118,72 @@ class GenerateLLVM(object):
         return self.blockvisitor.temps
 
     @property
-    def exit_block(self):
-        return self.blockvisitor.exit_block
-
-    @property
-    def builder(self):
-        return self.blockvisitor.builder
-
-    @property
     def module(self):
         return self.blockvisitor.module
 
-    @property
-    def runtime(self):
-        return self.blockvisitor.runtime
+    def declare_runtime_library(self):
+        self.runtime = {}
+
+        self.runtime['_print_int'] = Function.new(self.module,
+                                                  Type.function(Type.void(), [int_type], False),
+                                                  "_print_int")
+        self.runtime['_print_float'] = Function.new(self.module,
+                                                    Type.function(Type.void(), [float_type], False),
+                                                    "_print_float")
+        self.runtime['_print_bool'] = Function.new(self.module,
+                                                   Type.function(Type.void(), [bool_type], False),
+                                                   "_print_bool")
 
     def set_block(self, block):
-        self.blockvisitor.block = block
+        self.block = block
         self.builder.position_at_end(block)
 
     def add_block(self, name):
-        return self.blockvisitor.function.append_basic_block(name)
+        return self.function.append_basic_block(name)
 
     def make_function(self, name, ret_type, arg_types):
         func = Function.new(self.module,
                             Type.function(ret_type, arg_types, False),
                             name)
-        self.blockvisitor.functions[name] = func
+        self.functions[name] = func
         return func
+
+    def terminate(self):
+        if self.last_branch != self.block:
+            self.builder.branch(self.exit_block)
+        self.builder.position_at_end(self.exit_block)
+
+        if 'return' in self.locals:
+            self.builder.ret(self.builder.load(self.locals['return']))
+        else:
+            self.builder.ret_void()
+
+    def begin_function(self, name, ret_type, arg_types):
+        ret_type, arg_types = typemap[ret_type], [typemap[a] for a in arg_types]
+        self.function = self.functions[name]
+        self.block = self.function.append_basic_block("start")
+        self.builder = Builder.new(self.block)
+        self.set_block(self.block)
+        self.exit_block = self.function.append_basic_block("exit")
+        if ret_type is not void_type:
+            self.locals['return'] = self.builder.alloca(ret_type, name="return")
+
+    def end_function(self, name):
+        if name == "@main":
+            self.blockvisitor.main_func = self.function
+            self.branch(self.exit_block)
+        self.terminate()
+        if args.verbose:
+            print(self.module)
+        self.function.verify()
 
     def cbranch(self, testvar, true_block, false_block):
         self.builder.cbranch(self.temps[testvar], true_block, false_block)
 
     def branch(self, next_block):
-        if self.blockvisitor.last_branch != self.blockvisitor.block:
+        if self.last_branch != self.block:
             self.builder.branch(next_block)
-        self.blockvisitor.last_branch = self.blockvisitor.block
+        self.last_branch = self.block
 
     def generate_code(self, block):
         for op in block.instructions:
@@ -251,24 +234,15 @@ class GenerateLLVM(object):
 
     def emit_parm_int(self, name, argn):
         self.emit_alloc_int(name)
-        self.builder.store(self.blockvisitor.function.args[argn], self.vars[name])
+        self.builder.store(self.function.args[argn], self.vars[name])
 
     def emit_parm_float(self, name, argn):
         self.emit_alloc_float(name)
-        self.builder.store(self.blockvisitor.function.args[argn], self.vars[name])
+        self.builder.store(self.function.args[argn], self.vars[name])
 
     def emit_parm_bool(self, name, argn):
         self.emit_alloc_bool(name)
-        self.builder.store(self.blockvisitor.function.args[argn], self.vars[name])
-
-    def emit_store_int(self, source, name):
-        self.builder.store(self.vars[name], Constant.int(int_type, self.temps[source]))
-
-    def emit_store_float(self, source, name):
-        self.builder.store(self.vars[name], Constant.real(float_type, self.temps[source]))
-
-    def emit_store_bool(self, source, name):
-        self.builder.store(self.vars[name], Constant.int(bool_type, self.temps[source]))
+        self.builder.store(self.function.args[argn], self.vars[name])
 
     # Load/store instructions for variables.  Load needs to pull a
     # value from a global variable and store in a temporary. Store
@@ -457,9 +431,9 @@ def main():
         if not errors_reported():
             code = gonecode.generate_code(program)
             g = GenerateLLVMBlockVisitor()
-            inner_block_visitor = GenerateLLVM(blockvisitor=g)
-            g.inner_block_visitor = inner_block_visitor
-            g.loop(code.functions)
+            generator = GenerateLLVM(blockvisitor=g)
+            g.generator = generator
+            g.visit_functions(code.functions)
 
             if args.verbose:
                 print(":::: RUNNING ::::")
