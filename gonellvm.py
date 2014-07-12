@@ -14,9 +14,6 @@ void_type = Type.void()
 
 args = None
 
-# A dictionary that maps the typenames used in IR to the corresponding
-# LLVM types defined above.   This is mainly provided for convenience
-# so you can quickly look up the type object given its type name.
 typemap = {
     'int': int_type,
     'float': float_type,
@@ -27,24 +24,18 @@ typemap = {
 
 
 class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
-    def __init__(self):
+    def __init__(self, generator):
         super(GenerateLLVMBlockVisitor, self).__init__()
-        self.generator = None
-        self.locals = {}
-        self.globals = {}
-        self.vars = ChainMap(self.locals, self.globals)
-        self.temps = {}
-        self.module = Module.new("module")
+        self.generator = generator
 
     def visit_functions(self, toplevel_blocks):
         self.generator.declare_runtime_library()
 
         for name, start_block, ret_type, arg_types in toplevel_blocks:
             ret_type, arg_types = typemap[ret_type], [typemap[a] for a in arg_types]
-            self.globals[name] = self.generator.make_function(name, ret_type, arg_types)
+            self.generator.make_function(name, ret_type, arg_types)
 
         for name, start_block, ret_type, arg_types in toplevel_blocks:
-            self.locals.clear()
             self.generator.begin_function(name, ret_type, arg_types)
             self.visit(start_block)
             self.generator.end_function(name)
@@ -92,34 +83,18 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
 
 
 class GenerateLLVM(object):
-    def __init__(self, blockvisitor=None):
-        self.blockvisitor = blockvisitor
+    def __init__(self):
+        self.module = Module.new("module")
         self.builder = None
         self.exit_block = None
         self.functions = {}
         self.function = None
         self.last_branch = None
         self.block = None
-
-    @property
-    def vars(self):
-        return self.blockvisitor.vars
-
-    @property
-    def locals(self):
-        return self.blockvisitor.locals
-
-    @property
-    def globals(self):
-        return self.blockvisitor.globals
-
-    @property
-    def temps(self):
-        return self.blockvisitor.temps
-
-    @property
-    def module(self):
-        return self.blockvisitor.module
+        self.temps = {}
+        self.locals = {}
+        self.globals = {}
+        self.vars = ChainMap(self.locals, self.globals)
 
     def declare_runtime_library(self):
         self.runtime = {}
@@ -146,6 +121,7 @@ class GenerateLLVM(object):
                             Type.function(ret_type, arg_types, False),
                             name)
         self.functions[name] = func
+        self.globals[name] = func
         return func
 
     def terminate(self):
@@ -160,6 +136,7 @@ class GenerateLLVM(object):
 
     def begin_function(self, name, ret_type, arg_types):
         ret_type, arg_types = typemap[ret_type], [typemap[a] for a in arg_types]
+        self.locals.clear()
         self.function = self.functions[name]
         self.block = self.function.append_basic_block("start")
         self.builder = Builder.new(self.block)
@@ -170,7 +147,7 @@ class GenerateLLVM(object):
 
     def end_function(self, name):
         if name == "@main":
-            self.blockvisitor.main_func = self.function
+            self.main_func = self.function
             self.branch(self.exit_block)
         self.terminate()
         if args.verbose:
@@ -430,17 +407,15 @@ def main():
         gonecheck.check_program(program)
         if not errors_reported():
             code = gonecode.generate_code(program)
-            g = GenerateLLVMBlockVisitor()
-            generator = GenerateLLVM(blockvisitor=g)
-            g.generator = generator
+            g = GenerateLLVMBlockVisitor(GenerateLLVM())
             g.visit_functions(code.functions)
 
             if args.verbose:
                 print(":::: RUNNING ::::")
             start = time.clock()
 
-            llvm_executor = ExecutionEngine.new(g.module)
-            llvm_executor.run_function(g.main_func, [])
+            llvm_executor = ExecutionEngine.new(g.generator.module)
+            llvm_executor.run_function(g.generator.main_func, [])
 
             if args.verbose:
                 print(":::: FINISHED ::::")
