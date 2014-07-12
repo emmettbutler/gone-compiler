@@ -1,13 +1,15 @@
+from collections import ChainMap
+
 from llvm.core import Module, Builder, Function, Type, Constant, GlobalVariable
 from llvm.core import (
     FCMP_UEQ, FCMP_UGE, FCMP_UGT, FCMP_ULE, FCMP_ULT, FCMP_UNE,
     ICMP_EQ, ICMP_NE, ICMP_SGE, ICMP_SGT, ICMP_SLE, ICMP_SLT
 )
-from goneblock import BaseLLVMBlockVisitor
-from collections import ChainMap
 
-int_type = Type.int()         # 32-bit integer
-float_type = Type.double()      # 64-bit float
+from goneblock import BaseLLVMBlockVisitor
+
+int_type = Type.int()
+float_type = Type.double()
 string_type = None
 bool_type = Type.int(1)
 void_type = Type.void()
@@ -27,10 +29,9 @@ class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
     def __init__(self):
         super(GenerateLLVMBlockVisitor, self).__init__()
         self.generator = GenerateLLVM()
-
-    def visit_functions(self, toplevel_blocks):
         self.generator.declare_runtime_library()
 
+    def visit_functions(self, toplevel_blocks):
         for name, start_block, ret_type, arg_types in toplevel_blocks:
             ret_type, arg_types = typemap[ret_type], [typemap[a] for a in arg_types]
             self.generator.make_function(name, ret_type, arg_types)
@@ -117,9 +118,7 @@ class GenerateLLVM(object):
         return self.function.append_basic_block(name)
 
     def make_function(self, name, ret_type, arg_types):
-        func = Function.new(self.module,
-                            Type.function(ret_type, arg_types, False),
-                            name)
+        func = Function.new(self.module, Type.function(ret_type, arg_types, False), name)
         self.functions[name] = func
         self.globals[name] = func
         return func
@@ -128,7 +127,6 @@ class GenerateLLVM(object):
         if self.last_branch != self.block:
             self.builder.branch(self.exit_block)
         self.builder.position_at_end(self.exit_block)
-
         if 'return' in self.locals:
             self.builder.ret(self.builder.load(self.locals['return']))
         else:
@@ -151,8 +149,11 @@ class GenerateLLVM(object):
             self.branch(self.exit_block)
         self.terminate()
         if args.verbose:
+            print("==== IN-PROGRESS MODULE ===")
             print(self.module)
-        self.function.verify()
+            print("==== END IN-PROGRESS MODULE ===")
+        if args.validate:
+            self.function.verify()
 
     def cbranch(self, testvar, true_block, false_block):
         self.builder.cbranch(self.temps[testvar], true_block, false_block)
@@ -391,10 +392,13 @@ def main():
     from llvm.ee import ExecutionEngine
 
     global args
-    parser = argparse.ArgumentParser("Run a 'Gone' program from a .g file")
-    parser.add_argument('file', type=str, default='', nargs=1)
-    parser.add_argument('--verbose', action="store_true",
+    parser = argparse.ArgumentParser("Compile and run a Gone program from a .g file")
+    parser.add_argument('file', type=str, default='', nargs=1,
+                        help="the file containing Gone source")
+    parser.add_argument('--verbose', '-v', action="store_true",
                         help="print verbose output")
+    parser.add_argument('--validate', '-c', action="store_true",
+                        help="perform llvm bitcode validation prior to program execution")
     args = parser.parse_args()
 
     # Load the Gone runtime library (see Makefile)
@@ -411,15 +415,20 @@ def main():
             g.visit_functions(code.functions)
 
             if args.verbose:
+                print("---- NATIVE ASSEMBLY ----")
+                print(g.generator.module.to_native_assembly())
+                print("---- END NATIVE ASSEMBLY ----")
+
+            if args.verbose:
                 print(":::: RUNNING ::::")
-            start = time.clock()
+            start = time.time()
 
             llvm_executor = ExecutionEngine.new(g.generator.module)
             llvm_executor.run_function(g.generator.main_func, [])
 
             if args.verbose:
                 print(":::: FINISHED ::::")
-                print("execution time: {0:.15f}s".format(time.clock() - start))
+                print("execution time: {0:.15f}s".format(time.time() - start))
 
 if __name__ == '__main__':
     main()
