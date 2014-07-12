@@ -11,6 +11,7 @@ during a week-long course in July 2014.
 Use
 ---
 
+    make ; make linux
     python3 goner.py tests/functions/mandel.g
 
 Files
