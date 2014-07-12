@@ -24,9 +24,9 @@ typemap = {
 
 
 class GenerateLLVMBlockVisitor(BaseLLVMBlockVisitor):
-    def __init__(self, generator):
+    def __init__(self):
         super(GenerateLLVMBlockVisitor, self).__init__()
-        self.generator = generator
+        self.generator = GenerateLLVM()
 
     def visit_functions(self, toplevel_blocks):
         self.generator.declare_runtime_library()
@@ -407,7 +407,7 @@ def main():
         gonecheck.check_program(program)
         if not errors_reported():
             code = gonecode.generate_code(program)
-            g = GenerateLLVMBlockVisitor(GenerateLLVM())
+            g = GenerateLLVMBlockVisitor()
             g.visit_functions(code.functions)
 
             if args.verbose:
