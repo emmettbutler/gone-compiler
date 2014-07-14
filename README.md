@@ -39,7 +39,7 @@ Requirements
 This compiler is written in python3, so you'll need that. It also depends on
 [ply](http://www.dabeaz.com/ply/), which you can get with
 
-    `pip install -r requirements.txt`
+    pip install -r requirements.txt
 
 This compiler targets [llvm](http://llvm.org/releases/download.html)
 and uses [llvmpy](http://www.llvmpy.org/llvmpy-doc/dev/doc/firstexample.html),
